@@ -1,0 +1,321 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>V2Ray+WebSocket Ubuntu Tutorial</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158089470-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158089470-1');
+</script>
+<meta property="og:title" content="LionLibr">
+<meta property="og:description" content="How to set up V2Ray+WebSocket on an Ubuntu 18.04 server and an Ubuntu 18.04 client">
+<meta property="og:image" content="https://www.lionlibr.com/images/v2ray-opengraph.png">
+<meta property="og:url" content="https://www.lionlibr.com/posts/v2ray-websocket-ubuntu-tutorial.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@lionlibr">
+<meta name="twitter:creator" content="@lionlibr">
+<meta name="twitter:title" content="LionLibr">
+<meta name="twitter:description" content="How to set up V2Ray+WebSocket on an Ubuntu 18.04 server and an Ubuntu 18.04 client">
+<meta name="twitter:image" content="https://www.lionlibr.com/images/v2ray-opengraph.png">
+<link type="text/css" rel="stylesheet"  href="../css/style.css">
+</head>
+
+<body>
+
+<div id="header">
+<div class="content">
+	<p class="logo"><a href="/"><img src="../images/logo-36x36.png" alt="Logo"></a> <a href="/">LionLibr</a></p>
+</div>
+</div>
+
+<div id="main">
+<div class="content">
+
+	<h1>V2Ray+WebSocket Ubuntu Tutorial</h1>
+	
+<p>V2Ray is a popular method to cross the Great Firewall (GFW) of China. WebSocket (WS) is a protocol that upgrades an HTTP connection to provide full-duplex communication over a single TCP connection. V2Ray has the capability to communicate using the HTTP-like WebSocket protocol. This assists in camouflaging the communication between your client and your server.</p>
+
+<p>In this tutorial, you&rsquo;ll see how to set up V2Ray+WebSocket on an Ubuntu server and an Ubuntu client.</p>
+
+<p>Ubuntu Linux is released every six months, with long-term support (LTS) releases every two years. The version you&rsquo;ll see demonstrated in this tutorial is the most recent LTS version, which at the time of writing is Ubuntu 18.04.</p>
+
+<img src="../images/v2ray-000.png" alt="V2Ray logo">
+
+<h2>1. Set Up Ubuntu Server</h2>
+
+<p>Log on to your Ubuntu Linux server.</p>
+
+<h3>1.1. Install Nginx</h3>
+
+<p>The first thing you need to do is to install the Nginx web server:</h3>
+
+<p class="terminal">
+sudo apt install nginx
+</p>
+
+<p>Open <code>/etc/nginx/sites-available/default</code> in your favorite text editor, such as the <code>vi</code> editor or the <code>nano</code> editor. For example:
+
+<p class="terminal">
+sudo vi /etc/nginx/sites-available/default
+</p>
+
+<p>or
+
+<p class="terminal">
+sudo nano /etc/nginx/sites-available/default
+</p>
+
+<p>Set the <code>server_name</code> to your domain name. In our examples here, we will use <code>www.example.com</code>.</p>
+
+<p class="terminal">nginx
+server_name www.example.com;
+</p>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>1.2. Install V2Ray</h3>
+
+<p>Now install V2Ray using the official installation script:</p>
+
+<p class="terminal">
+sudo apt install wget unzip<br>
+<br>
+mkdir ~/Downloads<br>
+<br>
+cd ~/Downloads<br>
+<br>
+wget https://install.direct/go.sh<br>
+<br>
+sudo bash go.sh
+</p>
+
+<h3>1.3. Configure V2Ray</h3>
+
+<p>Toward the end of the installation script run, you will see the generated values for your server port and your universally unique id (UUID). We&rsquo;ll use <code>12345</code> and <code>YOUR-SERVER-UNIVERSALLY-UNIQUE-ID</code> in the examples that follow. Note down your actual values, as you will need them in a few moments.</p>
+
+<p>Edit the V2Ray configuration file. If you prefer the <code>vi</code> editor, the command would be:</p>
+
+<p class="terminal">
+sudo vi /etc/v2ray/config.json
+</p>
+
+<p>If you prefer the <code>nano</code> editor, you would enter instead the command:</p>
+
+<p class="terminal">
+sudo nano /etc/v2ray/config.json
+</p>
+
+<p>The V2Ray configuration file is in a format called JavaScript Object Notation (JSON, pronounced JAY-sun). JSON is a standard data interchange format that presents attribute–value pairs and arrays in a readable format.</p>
+
+<p>Add the <code>listen</code> line, which makes V2Ray listen on localhost (<code>127.0.0.1</code>) only. Also add  the <code>streamSettings</code> parameters, substituting in your actual choice for the <code>PATH</code> directory:</p>
+
+<pre>
+{
+  "inbounds": [
+    {
+      "port": 12345,
+      "listen": "127.0.0.1",
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          {
+            "id": "YOUR-SERVER-UNIVERSALLY-UNIQUE-ID",
+            "level": 1,
+            "alterId": 64
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "ws",
+        "wsSettings": {
+          "path": "/PATH/"
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    },{
+      "protocol": "blackhole",
+      "settings": {},
+      "tag": "blocked"
+    }
+  ],
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "ip": ["geoip:private"],
+        "outboundTag": "blocked"
+      }
+    ]
+  }
+}
+</pre>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>1.4. Reconfigure Nginx</h3>
+
+<p>Edit the Nginx default site configuration file, <code>/etc/nginx/sites-available/default</code>.</p>
+
+<p>Add a new location block with proxy rules. In the example below, replace <code>PATH</code> and <code>12345</code> with actual values.</p>
+
+<pre>
+location /PATH/ {
+            proxy_redirect off;
+            proxy_pass http://127.0.0.1:12345;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection "upgrade";
+            proxy_set_header Host $http_host;
+        }
+</pre>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>1.5. Restart Server</h3>
+
+<p>Start V2Ray and restart Nginx:</p>
+
+<p class="terminal">
+sudo systemctl start v2ray
+
+sudo systemctl restart nginx
+</p>
+
+<h2>2. Set Up Ubuntu Client</h2>
+
+<p>Now go to your Ubuntu Linux client PC.</p>
+
+<h3>2.1. Download V2Ray</h3>
+
+<p>Open the Firefox web browser. Download the latest V2Ray for 64-bit Linux from https://github.com/v2ray/v2ray-core/releases. The file to download for a 64-bit PC running Linux is <code>v2ray-linux-64.zip</code>.</p>
+
+<p>Open a terminal emulator (<strong>Ctrl</strong>+<strong>Alt</strong>+<strong>t</strong>). Unzip V2Ray for 64-bit Linux with these commands:</p>
+
+<p class="terminal">
+cd ~/Downloads<br>
+<br>
+mkdir v2ray<br>
+<br>
+sudo apt install unzip<br>
+<br>
+unzip v2ray-linux-64.zip -d v2ray<br>
+<br>
+cd v2ray
+</p>
+
+<h3>2.2. Configure V2Ray</h3>
+
+<p>In the terminal or in a text editor, edit the V2Ray configuration file, which is <code>config.json</code> in the <code>v2ray</code> directory.</p>
+
+<p>Add the placeholder text below, substituting in your actual values for <code>YOUR.SERVER.IP.ADDRESS</code>, <code>YOUR-SERVER-UNIVERSALLY-UNIQUE-ID</code>, <code>PATH</code>, and <code>www.example.com</code>:</p>
+
+<pre>
+{
+  "log": {
+    "loglevel": "warning"
+  },
+  "inbounds": [{
+    "port": 1080, 
+    "listen": "127.0.0.1",
+    "protocol": "socks",
+    "settings": {
+      "auth": "noauth",
+      "udp": false
+    },
+    "sniffing": {
+      "enabled": true,
+      "destOverride": ["http", "tls"]
+    }
+  }],
+  "outbounds": [{
+    "protocol": "vmess",
+    "settings": {
+      "vnext": [{
+        "address": "YOUR.SERVER.IP.ADDRESS", 
+        "port": 80,
+        "users": [
+          { "id": "YOUR-SERVER-UNIVERSALLY-UNIQUE-ID",
+            "alterId": 64 }
+        ]
+      }]
+    },
+    "streamSettings": {
+      "network": "ws",
+      "wsSettings": {
+        "path": "/PATH/",
+        "headers": {
+          "Host": "www.example.com"
+        }
+      }
+    }
+  },{
+    "protocol": "freedom",
+    "tag": "direct",
+    "settings": {}
+  }],
+  "routing": {
+    "domainStrategy": "IPOnDemand",
+    "rules": [{
+      "type": "field",
+      "ip": ["geoip:private"],
+      "outboundTag": "direct"
+    }]
+  }
+}
+</pre>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>2.3. Run V2Ray</h3>
+
+<p>In your terminal emulator, start the V2Ray client running:</p>
+
+<p class="terminal">
+./v2ray -config=config.json
+</p>
+
+<h3>2.4. Reconfigure Firefox</h3>
+
+<p>Open your Firefox web browser. From the hamburger menu, select <strong>Preferences</strong>. In the Network Settings section, click <strong>Settings</strong>. </p>
+
+<p>Set the network settings as follows:</p>
+
+<ul>
+<li>Select the radio button <strong>Manual proxy configuration</strong></li>
+<li>Enter <strong>SOCKS Host</strong> <code>127.0.0.1</code></li>
+<li>Enter <strong>Port</strong> <code>1080</code></li>
+<li>Select <strong>SOCKS v5</strong></li>
+<li>Check <strong>Proxy DNS when using SOCKS v5</strong></li>
+</ul>
+
+<p>Click <strong>OK</strong>.</p>
+
+<p>Firefox now sends requests to the V2Ray client, which sends them to the V2Ray server.</p>
+	
+</div>
+</div>
+
+<div id="footer">
+<div class="content">
+	<p class="logo"><a href="/">LionLibr </a>
+	<a href="https://twitter.com/lionlibr"><img src="../images/twitter-orange.png" alt="Twitter"></a> 
+	<a href="https://t.me/lionlibr"><img src="../images/telegram-orange.png" alt="Telegram"></a> 
+	<a href="https://github.com/lionlibr"><img src="../images/github-orange.png" alt="GitHub"></a>
+	</p>
+</div>
+</div>
+
+</body>
+
+</html>

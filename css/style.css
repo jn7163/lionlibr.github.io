@@ -1,0 +1,106 @@
+body {
+	font-family:sans-serif;
+	margin:0;
+	padding:0;
+}
+#header {
+	color:#fff;
+	background-color:#ff5722;
+	background-image:url('../images/lions-header.jpg');
+    background-repeat: no-repeat;
+	background-position: center; 
+}
+#footer {
+	color:#fff;
+	background-color:#000;
+}
+.logo {
+	font-size:48px;
+	font-weight:bold;
+}
+.content {
+	max-width:800px;
+	margin:0 auto;
+	padding:1px 0;
+}
+#main a:link {
+	color:#0080d5;
+	text-decoration:none;
+}
+#main a:visited {
+	color:#0080d5;
+	text-decoration:none;
+}
+#main a:hover {
+	color:#0080d5;
+	text-decoration:underline;
+}
+#main a:active {
+	color:#ff5722;
+	text-decoration:underline;
+}
+#header a:link {
+	color:#fff;
+	text-decoration:none;
+}
+#header a:visited {
+	color:#fff;
+	text-decoration:none;
+}
+#header a:hover {
+	color:#fff;
+	text-decoration:none;
+}
+#header a:active {
+	color:#ff0;
+	text-decoration:none;
+}
+#footer a:link {
+	color:#fff;
+	text-decoration:none;
+}
+#footer a:visited {
+	color:#fff;
+	text-decoration:none;
+}
+#footer a:hover {
+	color:#fff;
+	text-decoration:none;
+}
+#footer a:active {
+	color:#ff0;
+	text-decoration:none;
+}
+h1 {
+	color:#0080d5;
+}
+h1.sitetitle {
+	color:#ff5722;
+}
+p,li {
+	font-size:18px; 
+	line-height:150%;
+}
+.terminal {
+	color:#0c0;
+	background-color:#000;
+	font-family:monospace;
+	padding:10px;
+}
+pre {
+	font-size:18px; 
+	line-height:150%;
+	color:#0c0;
+	background-color:#000;
+	font-family:monospace;
+	padding:10px;
+}
+code {
+	font-weight:bold;
+	color:#050;
+}
+img {
+	max-width:100%;
+	width:auto;
+	height:auto;
+}
