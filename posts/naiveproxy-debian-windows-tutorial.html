@@ -1,0 +1,678 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>NaiveProxy on Debian and Windows Tutorial</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158089470-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158089470-1');
+</script>
+<meta property="og:title" content="LionLibr">
+<meta property="og:description" content="How to install NaiveProxy censorship resistance tool on a Debian server and a Windows client">
+<meta property="og:image" content="https://www.lionlibr.com/images/chrome-opengraph.png">
+<meta property="og:url" content="https://www.lionlibr.com/posts/v2ray-websocket-ubuntu-tutorial.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@lionlibr">
+<meta name="twitter:creator" content="@lionlibr">
+<meta name="twitter:title" content="LionLibr">
+<meta name="twitter:description" content="How to install NaiveProxy censorship resistance tool on a Debian server and a Windows client">
+<meta name="twitter:image" content="https://www.lionlibr.com/images/chrome-opengraph.png">
+<link type="text/css" rel="stylesheet"  href="../css/style.css">
+</head>
+
+<body>
+
+<div id="header">
+<div class="content">
+	<p class="logo"><a href="/"><img src="../images/logo-36x36.png" alt="Logo"></a> 
+		<a href="/">LionLibr</a></p>
+</div>
+</div>
+
+<div id="main">
+<div class="content">
+
+	<h1>NaiveProxy on Debian and Windows Tutorial</h1>
+	
+<p>NaiveProxy uses Chrome&rsquo;s network stack to camouflage traffic and 
+provide stronger censorship resistance than custom-made network stacks. It aims 
+to resist both fingerprinting and active probing. Reusing Chrome&rsquo;s stack 
+ensures that NaiveProxy implements best practices in performance and 
+security.</p>
+
+<p>In this tutorial, you&rsquo;ll learn how to install NaiveProxy on a Debian 
+server and a Windows client.</p>
+
+<p>Debian is a long-established and highly respected Linux distribution. It is 
+popular with server administrators. New releases are issued every few years, 
+and at the time of writing the latest release is Debian 10.</p>
+
+<p>Windows 10 continues to be Microsoft&rsquo;s most popular desktop operating 
+system, running on around half of all desktop computers.</p>
+
+<h2>1. Set Up Server</h2>
+
+<p>Before you begin, you&rsquo;ll need to acquire a domain name 
+and a server.
+This tutorial assumes you start with a newly created virtual private server 
+(VPS).</p>
+
+<h3>1.1. SSH as Root</h3>
+
+<p>Log in to your server using a tool such as PuTTY, XSHELL, or PowerShell 
+(if you use Windows on your workstation), or the SSH command in a terminal 
+emulator (if you use Linux or Mac on your workstation).</p>
+
+<p>If your VPS provider sent you a root password by email, then change the root 
+password to something only you know:</p>
+
+<p class="terminal">
+passwd root
+</p>
+
+<p>If you do not know the root password, then SSH in as a non-root user, and 
+set the root password:</p>
+
+<p class="terminal">
+sudo passwd root
+</p>
+
+<p>If you logged in as a non-root user, then switch to the root user now:</p>
+
+<p class="terminal">
+su -
+</p>
+
+<h3>1.2. Update Your Server</h3>
+
+Get your entire system up to date by issuing these commands as root:
+
+<p class="terminal">
+apt update<br>
+<br>
+apt dist-upgrade<br>
+<br>
+apt autoremove
+</p>
+
+<h3>1.3. Implement BBR Congestion Control</h3>
+
+<p>Bottleneck Bandwidth and Roundtrip propagation time (BBR) is a congestion 
+control algorithm for Transmission Control Protocol (TCP). It aims to achieve higher bandwidths and lower latencies.</p>
+
+<p>Edit your Linux system control parameters file, 
+<code>/etc/sysctl.conf</code>, to specify the BBR congestion control algorithm. 
+You can use any command-line editor for this. For example, if your favorite 
+editor is the <code>vi</code> editor:</p>
+
+<p class="terminal">
+vi /etc/sysctl.conf
+</p>
+
+<p>Alternatively, if your favorite editor is the <code>nano</code> editor:</p>
+
+<p class="terminal">
+nano /etc/sysctl.conf
+</p>
+
+<p>Add two lines at the end of the current file:</p>
+
+<p class="terminal">
+net.core.default_qdisc=fq<br>
+net.ipv4.tcp_congestion_control=bbr
+</p>
+
+<p>Write the file to disk, and quit the editor. Activate this change by issuing 
+the command:</p>
+
+<p class="terminal">
+sysctl -p
+</p>
+
+<h3>1.4. Install Firewall</h3>
+
+<p>Install the <code>nftables</code> firewall package:</p>
+
+<p class="terminal">
+apt install nftables
+</p>
+
+<p>Specify that you want to start <code>nftables</code> after every reboot, 
+and start it now:</p>
+
+<p class="terminal">
+systemctl enable nftables<br>
+<br>
+systemctl start nftables
+</p>
+
+<h3>1.5. Configure Firewall</h3>
+
+<p>List the current <code>nftables</code> rules:</p>
+
+<p class="terminal">
+nft list ruleset
+</p>
+
+<p>You should see a <code>table</code> for <code>inet filter</code>, plus a 
+<code>chain</code> within it for each of <code>input</code>, 
+<code>forward</code>, and <code>output</code>.
+
+<p>If this table and its chains do not exist, then create them now:</p>
+
+<p class="terminal">
+nft add table inet filter<br>
+<br>
+nft add chain inet filter input { type filter hook input priority 0 \; policy accept\; }<br>
+<br>
+nft add chain inet filter forward { type filter hook forward priority 0 \; policy accept\; }<br>
+<br>
+nft add chain inet filter output { type filter hook output priority 0 \; policy accept\; }
+</p>
+
+<p>If they already exist, then simply carry on as follows.</p>
+
+<p>Add a rule to accept all related and established traffic:</p>
+
+<p class="terminal">
+nft add rule inet filter input ct state related,established counter accept
+</p>
+
+<p>Add a rule to accept all loopback interface traffic:</p>
+
+<p class="terminal">
+nft add rule inet filter input iif lo counter accept
+</p>
+
+<p>For the next rule, you need to know your workstation&rsquo;s 
+Internet Protocol (IP) address. If you do not know your IP address, you can 
+find it out by opening a browser and visiting 
+<a href="https://www.ipip.net" target="_blank">https://www.ipip.net</a> or
+<a href="https://whatismyipaddress.com" target="_blank">https://whatismyipaddress.com</a>.</p>
+
+<p>Let&rsquo;s assume your workstation&rsquo;s IP address is 
+<code>11.22.33.44</code>. If that is realtively fixed, whitelist your 
+IP address for access to port <code>22</code>, 
+which is the port you use for SSH:</p>
+
+<p class="terminal">
+nft add rule inet filter input tcp dport 22 ip saddr 11.22.33.44/32 counter accept
+</p>
+
+<p>Alternatively, you can open port <code>22</code> for a range 
+of IP addresses. For example, if your ISP allocates addresses in the range 
+<code>11.22.0.0</code> through <code>11.22.255.255</code>, you could open 
+port <code>22</code> for the entire range like this:</p>
+
+<p class="terminal">
+nft add rule inet filter input tcp dport 22 ip saddr 11.22.0.0/16 counter accept
+</p>
+
+<p>If neither of these possibilities works, you will have to open port 
+<code>22</code> for the entire world, like this:</p>
+
+<p class="terminal">
+nft add rule inet filter input tcp dport 22 counter accept
+</p>
+
+<p>We will use ports <code>80</code> and <code>443</code> for NaiveProxy, 
+so open them too:
+
+<p class="terminal">
+nft add rule inet filter input tcp dport {http, https} counter accept
+</p>
+
+<p>Check that the rules now look as expected:</p>
+
+<p class="terminal">
+nft list ruleset
+</p>
+
+<p>To persist these changes across reboots, save your rules to 
+<code>/etc/nftables.conf</code>:</p>
+
+<p class="terminal">
+nft list ruleset > /etc/nftables.conf
+</p>
+
+<p>Now we are going to change the default policy to drop all other input.</p>
+
+<p>Edit the <code>nftables</code> configuration file in your preferred
+editor. For example, if your preferred editor is the <code>vi</code> 
+editor:</p>
+
+<p class="terminal">
+vi /etc/nftables.conf
+</p>
+
+<p>Alternatively, if your preferred editor is the <code>nano</code> 
+editor:</p>
+
+<p class="terminal">
+nano /etc/nftables.conf
+</p>
+
+<p>Change the policy from <code>accept</code> to <code>drop</code>:</p>
+
+<pre>
+chain input { 
+    type filter hook input priority 0; policy drop; 
+</pre>
+
+<p>Restart <code>nftables</code> with your new configuration:</p>
+
+<p class="terminal">
+systemctl restart nftables
+</p>
+
+<h3>1.6. Install Prerequisites</h3>
+
+<p>Install the software packages that will be needed for the rest of this 
+tutorial:</p>
+
+<p class="terminal">
+apt install libnss3 curl wget xz-utils zip unzip dnsutils
+</p>
+
+<h3>1.7. Download NaiveProxy</h3>
+
+<p>Now that the server is set up and the prerequisites are installed, we are 
+ready to proceed with the NaiveProxy download.</p>
+
+<p>Open a browser. Determine the latest release of NaiveProxy for 64-bit Linux 
+by visiting
+<a href="https://github.com/klzgrad/naiveproxy/releases" target="_blank">https://github.com/klzgrad/naiveproxy/releases</a>.
+We will use as an example the latest release at the time of writing, which is 
+named <code>naiveproxy-v80.0.3987.87-1-linux-x64.tar.xz</code>. It may be 
+different at the time you follow this tutorial.</p>
+
+<p>Back in your SSH session with your server, issue the command 
+to download the latest release of NaiveProxy for Linux:</p>
+
+<p class="terminal">
+wget https://github.com/klzgrad/naiveproxy/releases/download/v80.0.3987.87-1/naiveproxy-v80.0.3987.87-1-linux-x64.tar.xz
+<p>
+
+<p>Unpack the archive:</p>
+
+<p class="terminal">
+tar -xf naiveproxy-v80.0.3987.87-1-linux-x64.tar.xz
+</p>
+
+<p>Rename the unpacked directory to simply <code>naiveproxy</code>:</p>
+
+<p class="terminal">
+mv naiveproxy-v80.0.3987.87-1-linux-x64 naiveproxy
+<p>
+
+<h3>1.8. Download Caddy</h3>
+
+<p>Caddy is an advanced web server with a automated HTTPS features, including 
+the automatic redirect of HTTP traffic to HTTPS.</p>
+
+<p>Download Caddy for personal use with the <code>http.forwardproxy</code> 
+plugin:</p>
+
+<p class="terminal">
+curl -OJ 'https://caddyserver.com/download/linux/amd64?plugins=http.forwardproxy&license=personal'
+</p>
+
+<p>Unpack the archive:</p>
+
+<p class="terminal">
+tar -xzf caddy_*.tar.gz
+</p>
+
+<p>Set the capabilites of Caddy to allow it to bind to ports below 
+<code>1024</code>, which are known as &ldquo;privileged ports&rdquo;:</p>
+
+<p class="terminal">
+setcap cap_net_bind_service=+ep caddy
+</p>
+
+<h3>1.9. Create Website</h3>
+
+<p>For extra realism, we will add some sample content to the web server.</p>
+
+<p>Make a directory to hold the content of the sample blog:</p>
+
+<p class="terminal">
+mkdir -p /var/www/html
+</p>
+
+<p>Download the archive file for some sample content from GitHub:</p>
+
+<p class="terminal">
+wget https://github.com/arcdetri/sample-blog/archive/master.zip
+</p>
+
+<p>Unpack the archive:</p>
+
+<p class="terminal">
+unzip master.zip
+</p>
+
+<p>Copy the downloaded sample blog into your web site directory:</p>
+
+<p class="terminal">
+cp -rf sample-blog-master/html/* /var/www/html/
+</p>
+
+<h3>1.10. Configure Caddy</h3>
+
+<p>Edit the Caddy configuration file. If you prefer the <code>vi</code> editor, 
+then issue the command:</p>
+
+<p class="terminal">
+vi Caddyfile
+</p>
+
+<p>Alternatively, if you prefer the <code>nano</code> editor, then issue the 
+command:</p>
+
+<p class="terminal">
+nano Caddyfile
+</p>
+
+<p>We will make Caddy forward authorized traffic to localhost port 
+<code>8080</code>. Enter into the file the Caddy configuration, 
+using the model below.</p>
+
+<ul>
+<li>Replace <code>california.example.com</code> by your actual hostname</li>
+<li>Replace <code>myemail@example.com</code> by your actual email address</li>
+<li>Replace <code>userid</code> by your choice of userid</li>
+<li>Replace <code>password</code> by your choice of password</li>
+</ul>
+
+<pre>
+california.example.com
+root /var/www/html
+tls myemail@example.com
+forwardproxy {
+  basicauth userid password
+  hide_ip
+  hide_via
+  probe_resistance
+  upstream http://127.0.0.1:8080
+}
+</pre>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>1.11. Run Caddy</h3>
+
+<p>Your mapping of your hostname (<code>california.example.com</code> 
+in our example) to your server IP address must have propagated 
+before you do this step. You can check that the hostname points to 
+your server IP address with the <code>nslookup</code> command.
+Replace <code>california.example.com</code> in this example 
+by your actual hostname:</p>
+
+<p class="terminal">
+nslookup california.example.com 8.8.8.8
+</p>
+
+<p>We will run Caddy in a <code>screen</code> session. Screen is a Linux 
+utility that can be used to multiplex a terminal session into several 
+independent processes.</p>
+
+<p>Create a new <code>screen</code> session for Caddy named 
+<code>caddy</code>:</p>
+
+<p class="terminal">
+screen -S caddy
+</p>
+
+<p>Caddy recommends that you increase the maximum number of open files 
+to 8192, so do that now:</p>
+
+<p class="terminal">
+ulimit -n 8192
+</p>
+
+<p>Launch Caddy:</p>
+
+<p class="terminal">
+./caddy
+</p>
+
+<p>Agree to the Let&rsquo;s Encrypt terms by typing <code>y</code>. 
+You should see messages:</p>
+
+<p class="terminal">
+Serving HTTPS on port 443<br>
+Serving HTTP on port 80
+</p>
+
+<p>Detach from your <code>screen</code> session by typing 
+<strong>Ctrl</strong>+<strong>a</strong> followed by <strong>d</strong>.
+This detaches you from <code>caddy</code> and takes you back to your
+original terminal session.</p>
+
+<h3>1.13. Configure NaiveProxy</h3>
+
+<p>Edit the NaiveProxy configuration file 
+<code>naiveproxy/config.json</code>.
+If you prefer the <code>vi</code> editor, then issue the command:</p>
+
+<p class="terminal">
+vi naiveproxy/config.json
+</p>
+
+<p>Alternatively, if you prefer the <code>nano</code> editor, then issue the 
+command:</p>
+
+<p class="terminal">
+nano naiveproxy/config.json
+</p>
+
+<p>Enter the configuration below, which will make the NaiveProxy server 
+listen on port <code>8080</code>:</p>
+
+<pre>
+{
+  "listen": "http://127.0.0.1:8080",
+  "padding": true
+}
+</pre>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>1.14. Run NaiveProxy</h3>
+
+<p>Run NaiveProxy in its own <code>screen</code> session, which we will name 
+<code>naive</code>:</p>
+
+<p class="terminal">
+screen -S naive<br>
+<br>
+cd naiveproxy<br>
+<br>
+./naive
+</p>
+
+<p>Detach from your <code>screen</code> session by typing 
+<strong>Ctrl</strong>+<strong>a</strong> followed by <strong>d</strong>.
+This detaches you from <code>caddy</code> and takes you back to your
+original terminal session.</p>
+
+<h3>1.15. Exit SSH Session</h3>
+
+<p>Your work on the server is done for now. Exit your SSH session by typing 
+the command:</p>
+
+<p class="terminal">
+exit
+</p>
+
+<h2>2. Set Up Client</h2>
+
+<h3>2.1. Download NaiveProxy</h3>
+
+<p>Open a browser, and visit 
+<a href="https://github.com/klzgrad/naiveproxy/releases" target="_blank">https://github.com/klzgrad/naiveproxy/releases</a>.</p>
+
+<p>Download the latest release of NaiveProxy for 64-bit Windows.
+At the time of writingm it is named <code>naiveproxy-v80.0.3987.87–1-win-x64.zip</code>.</p>
+
+<p>Right-click on the zip file and select <strong>Extract All...</strong> 
+to unzip the zip file.</p>
+
+<h3>2.2. Configure NaiveProxy</h3>
+
+<p>In the folder <code>naiveproxy-v80.0.3987.87–1-win-x64</code> 
+and subfolder <code>naiveproxy-v80.0.3987.87–1-win-x64</code>, 
+edit the file <code>config.json</code>.
+You can use Notepad, Notepad++, or any other text editor.</p>
+
+<ul>
+<li>Replace <code>california.example.com</code> by your actual hostname</li>
+<li>Replace <code>userid</code> by your choice of userid</li>
+<li>Replace <code>password</code> by your choice of password</li>
+</ul>
+
+<p>These must all match what you put on the server.</p>
+
+<p>Here is the template for to modify:</p>
+
+<pre>
+{
+  "listen": "socks://127.0.0.1:1080",
+  "proxy": "https://userid:password@california.example.com",
+  "padding": true
+}
+</pre>
+
+<p>When you have finished editing, save the file, and close the editor.</p>
+
+<h3>2.3. Run NaiveProxy</h3>
+
+<p>Open a Command Prompt window by doing 
+<strong>Windows</strong>+<strong>r</strong>, typing <code>cmd</code>, 
+and clicking <strong>OK</strong>.</p>
+
+<p>Change into the unzipped directory. At the time of writing 
+and with our example folder names, that is:
+
+<p class="terminal">
+cd Downloads\naiveproxy-v80.0.3987.87–1-win-x64\naiveproxy-v80.0.3987.87–1-win-x64
+</p>
+
+<p>Launch NaiveProxy by issuing the command:</p>
+
+<p class="terminal">
+naive
+<p>
+
+<p>Leave the Command Prompt window open with NaiveProxy running in it.</p>
+
+<h3>2.4. Configure Browser</h3>
+
+<p>Now configure your browser to use NaiveProxy, which is listening on 
+localhost port <code>1080</code>.</p>
+
+<p>In Firefox, from the hamburger menu select <strong>Options</strong>. 
+Under Network Settings, select <strong>Settings</strong>. 
+Choose <strong>Manual proxy configuration</strong>, 
+SOCKS Host <code>127.0.0.1</code>, 
+Port <code>1080</code>, 
+<strong>SOCKS v5</strong>. 
+Choose <strong>Proxy DNS when using SOCKS v5</strong>. 
+Click <strong>OK</strong>.</p>
+
+<img src="../images/firefox-000.png" 
+	alt="Firefox configured to use a proxy server">
+
+<p>In Chrome, you can configure your browser to use a proxy server 
+by installing and configuring the extension SwitchyOmega by FelisCatus 
+from the Chrome Web Store at 
+<a href="https://chrome.google.com/webstore/category/extensions" target="_blank">https://chrome.google.com/webstore/category/extensions</a>.
+Specify protocol <strong>SOCKS v5</strong>, 
+Server <code>127.0.0.1</code>, and Port <code>1080</code>.
+Click <strong>Apply changes</strong>, and activate the proxy.</p>
+
+<img src="../images/chrome-000.png"
+	alt="Chrome configured to use a proxy server">
+
+<h3>2.5. Test Browser</h3>
+
+<p>Test your browser by visiting 
+<a href="https://ipchicken.com" target="_blank">https://ipchicken.com</a>.</p>
+
+<p>You should see your <em>server</em> IP address, 
+not your <em>client</em> IP address.</p>
+
+<h3>2.6. End Browsing Session</h3>
+
+<p>Close the Command Prompt window with NaiveProxy running in it.</p>
+
+<p>Set your browser back to its direct, non-proxied settings.</p>
+
+<h2>3. Troubleshoot Issues</h2>
+
+<p>You can find more information on NaiveProxy on the NaiveProxy wiki at 
+<a href="https://github.com/klzgrad/naiveproxy/wiki" target="_blank">https://github.com/klzgrad/naiveproxy/wiki</a>.</p>
+
+<p>If you have any problems, here are some steps you can take 
+to troubleshoot.</p>
+
+<p>Firstly, double-check that your client configuration file
+is an exact match for the settings on your server.</p>
+
+<p>On the Windows client, your NaiveProxy Command Prompt window 
+may show some error messages. Technical problems in Windows may also result 
+in messages in the Windows Event Viewer (type <code>event viewer</code> in the 
+Windows 10 search box, and select the <strong>Event Viewer</strong> app).</p>
+
+<p>On the Debian server, you can look for messages by logging into your server 
+and reattaching your Caddy <code>screen</code> session:</p>
+
+<p class="terminal">
+screen -r caddy
+</p>
+
+<p>See if there are any messages there. When you are done looking, 
+again detach the <code>screen</code> session 
+(<strong>Ctrl</strong>+<strong>a</strong> followed by <strong>d</strong>). 
+Next, look for messages by reattaching your NaiveProxy <code>screen</code> 
+session:</p>
+
+<p class="terminal">
+screen -r naive
+</p>
+
+<p>When you have examined the messages, detach the <code>screen</code> 
+session (<strong>Ctrl</strong>+<strong>a</strong> followed by <strong>d</strong>).<p>
+
+<p>Finally examine the log files in your server&rsquo;s <code>/var/log</code> 
+directory.</p>
+
+<p>If you still have a problem, you can create a new issue on 
+<a href="https://github.com/klzgrad/naiveproxy/issues" target="_blank">https://github.com/klzgrad/naiveproxy/issues</a>.</p>
+	
+</div>
+</div>
+
+<div id="footer">
+<div class="content">
+	<p class="logo"><a href="/">LionLibr </a>
+	<a href="https://twitter.com/lionlibr"><img src="../images/twitter-orange.png" 
+		alt="Twitter"></a> 
+	<a href="https://t.me/lionlibr"><img src="../images/telegram-orange.png" 
+		alt="Telegram"></a> 
+	<a href="https://github.com/lionlibr"><img src="../images/github-orange.png" 
+		alt="GitHub"></a>
+	</p>
+</div>
+</div>
+
+</body>
+
+</html>
