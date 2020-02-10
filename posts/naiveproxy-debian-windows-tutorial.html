@@ -164,7 +164,23 @@ nft list ruleset
 <code>chain</code> within it for each of <code>input</code>, 
 <code>forward</code>, and <code>output</code>.
 
-<p>If this table and its chains do not exist, then create them now:</p>
+<pre>
+table inet filter {
+	chain input {
+		type filter hook input priority 0; policy accept;
+	}
+
+	chain forward {
+		type filter hook forward priority 0; policy accept;
+	}
+
+	chain output {
+		type filter hook output priority 0; policy accept;
+	}
+}
+</pre>
+
+<p>If this table and its chains do <em>not</em> exist, then create them now:</p>
 
 <p class="terminal">
 nft add table inet filter<br>
