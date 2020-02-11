@@ -66,30 +66,22 @@ Ubuntu 18.04.</p>
 
 <p>The first thing you need to do is to install the Nginx web server:</p>
 
-<p class="terminal">
-sudo apt install nginx
-</p>
+<p class="terminal">sudo apt install nginx</p>
 
 <p>Open <code>/etc/nginx/sites-available/default</code> in your favorite text 
 editor, such as the <code>vi</code> editor or the <code>nano</code> editor. 
 For example:
 
-<p class="terminal">
-sudo vi /etc/nginx/sites-available/default
-</p>
+<p class="terminal">sudo vi /etc/nginx/sites-available/default</p>
 
 <p>or
 
-<p class="terminal">
-sudo nano /etc/nginx/sites-available/default
-</p>
+<p class="terminal">sudo nano /etc/nginx/sites-available/default</p>
 
 <p>Set the <code>server_name</code> to your domain name. In our examples here, 
 we will use <code>www.example.com</code>.</p>
 
-<p class="terminal">
-server_name www.example.com;
-</p>
+<p class="terminal">server_name www.example.com;</p>
 
 <p>Write the file to disk, and quit the editor.</p>
 
@@ -97,8 +89,7 @@ server_name www.example.com;
 
 <p>Now install V2Ray using the official installation script:</p>
 
-<p class="terminal">
-sudo apt install wget unzip<br>
+<p class="terminal">sudo apt install wget unzip<br>
 <br>
 mkdir ~/Downloads<br>
 <br>
@@ -106,8 +97,7 @@ cd ~/Downloads<br>
 <br>
 wget https://install.direct/go.sh<br>
 <br>
-sudo bash go.sh
-</p>
+sudo bash go.sh</p>
 
 <h3>1.3. Configure V2Ray</h3>
 
@@ -120,16 +110,12 @@ in a few moments.</p>
 <p>Edit the V2Ray configuration file. If you prefer the <code>vi</code> editor, 
 the command would be:</p>
 
-<p class="terminal">
-sudo vi /etc/v2ray/config.json
-</p>
+<p class="terminal">sudo vi /etc/v2ray/config.json</p>
 
 <p>If you prefer the <code>nano</code> editor, you would enter instead the 
 command:</p>
 
-<p class="terminal">
-sudo nano /etc/v2ray/config.json
-</p>
+<p class="terminal">sudo nano /etc/v2ray/config.json</p>
 
 <p>The V2Ray configuration file is in a format called JavaScript Object 
 Notation (JSON, pronounced JAY-sun). JSON is a standard data interchange format 
@@ -213,11 +199,9 @@ location /PATH/ {
 
 <p>Start V2Ray and restart Nginx:</p>
 
-<p class="terminal">
-sudo systemctl start v2ray<br>
+<p class="terminal">sudo systemctl start v2ray<br>
 <br>
-sudo systemctl restart nginx
-</p>
+sudo systemctl restart nginx</p>
 
 <h2>2. Set Up Ubuntu Client</h2>
 
@@ -234,8 +218,7 @@ The file to download for a
 (<strong>Ctrl</strong>+<strong>Alt</strong>+<strong>t</strong>). 
 Unzip V2Ray for 64-bit Linux with these commands:</p>
 
-<p class="terminal">
-cd ~/Downloads<br>
+<p class="terminal">cd ~/Downloads<br>
 <br>
 mkdir v2ray<br>
 <br>
@@ -243,8 +226,7 @@ sudo apt install unzip<br>
 <br>
 unzip v2ray-linux-64.zip -d v2ray<br>
 <br>
-cd v2ray
-</p>
+cd v2ray</p>
 
 <h3>2.2. Configure V2Ray</h3>
 
@@ -318,9 +300,7 @@ which is <code>config.json</code> in the <code>v2ray</code> directory.</p>
 
 <p>In your terminal emulator, start the V2Ray client running:</p>
 
-<p class="terminal">
-./v2ray -config=config.json
-</p>
+<p class="terminal">./v2ray -config=config.json</p>
 
 <h3>2.4. Reconfigure Firefox</h3>
 
