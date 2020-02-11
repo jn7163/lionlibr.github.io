@@ -1,0 +1,634 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>V2Ray on CentOS and Android Tutorial</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158089470-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158089470-1');
+</script>
+<meta property="og:title" content="V2Ray on CentOS 8 and Android Tutorial">
+<meta property="og:description" content="How to install V2Ray censorship resistance tool on a CentOS 8 server and an Android client">
+<meta property="og:image" content="https://www.lionlibr.com/images/v2rayng-opengraph.jpg">
+<meta property="og:url" content="https://www.lionlibr.com/posts/v2ray-websocket-ubuntu-tutorial.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@lionlibr">
+<meta name="twitter:creator" content="@lionlibr">
+<meta name="twitter:title" content="V2Ray on CentOS 8 and Android Tutorial">
+<meta name="twitter:description" content="How to install V2Ray censorship resistance tool on a CentOS 8 server and an Android client">
+<meta name="twitter:image" content="https://www.lionlibr.com/images/v2rayng-opengraph.jpg">
+<link type="text/css" rel="stylesheet"  href="../css/style.css">
+</head>
+
+<body>
+
+<div id="header">
+<div class="content">
+	<p class="logo"><a href="/"><img src="../images/logo-36x36.png" alt="Logo"></a> 
+		<a href="/">LionLibr</a></p>
+</div>
+</div>
+
+<div id="main">
+<div class="content">
+
+	<h1>V2Ray on CentOS and Android Tutorial</h1>
+	
+<p>V2Ray is a popular method of censorship circumvention. 
+It has the capability to communicate using the HTTP-like WebSocket protocol. 
+This assists in camouflaging the communication between 
+your client and your server.</p>
+
+<p>In this tutorial, you&rsquo;ll see how to install V2Ray on a CentOS 
+server and an Android client. The server is further protected by being behind
+a content distribution network (CDN).
+This arrangement is sometimes referred to by the shorthand notation 
+&ldquo;V2Ray+WS+TLS+CDN.&rdquo;</p>
+
+<p>CentOS is an unbranded recompilation of Red Hat Enterprise Linux,
+which in turn is based on Fedora after extensive testing.
+New releases of CentOS are issued approximately every five years, 
+and at the time of writing the latest release is CentOS 8.</p>
+
+<p>Android continues to be the most popular mobile operating 
+system, running on around five out of every six mobile devices.</p>
+
+<h2>1. Preparation</h2>
+
+<p>Before you begin this tutorial, you will need five things:</p>
+
+<ol>
+<li><strong>A domain name.</strong> Since the goal is to look as much like a real web server
+as possible, a paid domain name is better than a free domain name.</li>
+<li><strong>A server.</strong> We will use a virtual private server (VPS).
+Censors often suspect that a VPS from a popular provider is being used
+for censorship circumvention. Vultr and Bandwagon Host are popular providers.
+Therefore it is best to obtain your VPS from a different provider.</li>
+<li><strong>DNS records.</strong> At a minimum, you will need
+a DNS <code>A</code> record pointing from your hostname to your server.
+In this tutorial we use <code>america.example.com</code> as a
+sample hostname.</li>
+<li><strong>An account with a CDN.</strong> We will use the 
+<a href="https://www.cloudflare.com" target="_blank">Cloudflare</a> free service.</li>
+<li><strong>An Android device.</strong> It is assumed that you own
+an Android phone or tablet.</li>
+</ol>
+
+<h2>2. Set Up Server</h2>
+
+<h3>2.1. SSH as Root</h3>
+
+<p>Log in to your server using a tool such as PuTTY, XSHELL, or PowerShell 
+(if you use Windows on your workstation), or the SSH command in a terminal 
+emulator (if you use Linux or Mac on your workstation).</p>
+
+<p>If your VPS provider sent you a root password by email, then change the root 
+password to something only you know:</p>
+
+<p class="terminal">passwd root</p>
+
+<p>If you do not know the root password, then SSH in as a non-root user, and 
+set the root password:</p>
+
+<p class="terminal">sudo passwd root</p>
+
+<p>If you logged in as a non-root user, then switch to the root user now:</p>
+
+<p class="terminal">su -</p>
+
+<h3>2.2. Update Server</h3>
+
+<p>Get your entire system up to date by issuing as root the command:</p>
+
+<p class="terminal">yum update</p>
+
+<h3>2.3. Install Enhanced Editor</h3>
+
+<p>Optionally install the enhanced editor:</p>
+
+<p class="terminal">yum install vim-enhanced</p>
+
+<p>Map the <code>vi</code> command to <code>vim</code>:</p>
+
+<p class="terminal">alias vi=vim</p>
+
+<p>Also edit <code>/etc/profile</code> and insert the same
+command to apply automaticall to future logins:</p>
+
+<p class="terminal">alias vi=vim</p>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>2.4. Implement BBR Congestion Control</h3>
+
+<p>Bottleneck Bandwidth and Roundtrip propagation time (BBR) is a congestion 
+control algorithm for Transmission Control Protocol (TCP). It aims to achieve 
+higher bandwidths and lower latencies.</p>
+
+<p>Create a new system control parameters file for BBR:</p>
+
+<p class="terminal">vi /etc/sysctl.d/50-bbr.conf</p>
+
+<p>Insert the two lines that specify the BBR congestion control algorithm:</p>
+
+<p class="terminal">net.core.default_qdisc=fq<br>
+net.ipv4.tcp_congestion_control=bbr</p>
+
+<p>Write the file to disk, and quit the editor. Activate these changes now:</p>
+
+<p class="terminal">sysctl -p /etc/sysctl.d/50-bbr.conf</p>
+
+<h3>2.5. Install Firewall</h3>
+
+<p>FirewallD may already be active (running) on your server. 
+You can check this with the command:</p>
+
+<p class="terminal">systemctl status firewalld</p>
+
+<p>If FirewallD is not active  and running, 
+then install and start it now:</p>
+
+<p class="terminal">yum install firewalld<br>
+<br>
+systemctl enable firewalld<br>
+<br>
+systemctl start firewalld</p>
+
+<h3>2.6. Configure Firewall</h3>
+
+<p>Now that FirewallD is active (running), use the <code>trusted</code> zone
+to whitelist your own IP address for access to SSH. First add SSH to 
+the <code>trusted</code> zone:</p>
+
+<p class="terminal">firewall-cmd --permanent --zone=trusted --add-service=ssh</p>
+
+<p>For the next step, you need to know your workstation&rsquo;s 
+Internet Protocol (IP) address. If you do not know your IP address, you can 
+find it out by opening a browser and visiting 
+<a href="https://www.ipip.net" target="_blank">https://www.ipip.net</a> or
+<a href="https://whatismyipaddress.com" target="_blank">https://whatismyipaddress.com</a>.</p>
+
+<p>Let&rsquo;s assume your workstation&rsquo;s IP address is 
+<code>11.22.33.44</code>. If that is realtively fixed, whitelist your 
+IP address for access to port <code>22</code>, 
+which is the port you use for SSH:</p>
+
+<p class="terminal">firewall-cmd --permanent --zone=trusted --add-source=11.22.33.44/32</p>
+
+<p>Alternatively, you can open port <code>22</code> for a range 
+of IP addresses. For example, if your ISP allocates addresses in the range 
+<code>11.22.0.0</code> through <code>11.22.255.255</code>, you could open 
+port <code>22</code> for the entire range like this:</p>
+
+<p class="terminal">firewall-cmd --permanent --zone=trusted --add-source=11.22.0.0/16</p>
+
+<p>If neither of these possibilities works, you will have to open port 
+<code>22</code> for the entire world. This is dangerous!</p>
+
+<p class="terminal">firewall-cmd --permanent --zone=trusted --add-source=0.0.0.0/0</p>
+
+<p>Reload the firewall rules:</p>
+
+<p class="terminal">firewall-cmd --reload</p>
+
+<p>Check that the results show your expected <code>source</code>
+and <code>services</code>:</p>
+
+<p class="terminal">firewall-cmd --zone=trusted --list-all</p>
+
+<p>We now prevent any other public IP addresses from reaching port 22 
+(the SSH port) by removing the <code>ssh</code> service from the 
+<code>public</code> zone:</p>
+
+<p class="terminal">firewall-cmd --permanent --zone=public --remove-service=ssh<br>
+<br>
+firewall-cmd --reload<br>
+<br>
+firewall-cmd --zone=public --list-all</p>
+
+<p>Finally, we will open ports <code>80</code> and <code>443</code>
+to the public:</p>
+
+<p class="terminal">firewall-cmd --permanent --zone=public --add-service=http<br>
+<br>
+firewall-cmd --permanent --zone=public --add-service=https<br>
+<br>
+firewall-cmd --reload<br>
+<br>
+firewall-cmd --zone=public --list-all</p>
+
+<p>In some cloud providers, you must also open ports <code>22</code>,
+<code>80</code>, and <code>443</code> for input
+in the VPS&rsquo;s &ldquo;Security Group.&rdquo;</p>
+
+<h3>2.7. Install Apache</h3>
+
+<p>Now install the Apache web server:</p>
+
+<p class="terminal">yum install httpd<br>
+<br>
+systemctl enable httpd<br>
+<br>
+systemctl start httpd</p>
+
+<h3>2.8. Configure Apache</h3>
+
+<p>Create a directory for your Apache virtual host&rsquo;s HTML:</p>
+
+<p class="terminal">mkdir -p /var/www/america.example.com/html</p>
+
+<p>Create a configuration file for your Apache virtual host:</p>
+
+<p class="terminal">vi /etc/httpd/conf.d/america.example.com.conf</p>
+
+<p>Insert your virtual host definition:</p>
+
+<pre>
+&lt;VirtualHost *:80&gt;
+    ServerName america.example.com
+    ServerAdmin your.email.id@example.com
+    DocumentRoot /var/www/america.example.com/html
+    &lt;Directory /var/www/america.example.com/html&gt;
+        AllowOverride All
+    &lt;/Directory&gt;
+&lt;/VirtualHost&gt;
+</pre>
+
+<p>Write the file to disk, and quit the editor. </p>
+
+<p>Restart the web server:</p>
+
+<p class="terminal">systemctl restart httpd</p>
+
+<h3>2.9. Add Website Content</h3>
+
+<p>Install some sample content on your website:</p>
+
+<p class="terminal">yum install wget zip unzip<br>
+<br>
+wget https://github.com/arcdetri/sample-blog/archive/master.zip<br>
+<br>
+unzip master.zip<br>
+<br>
+cp -rf sample-blog-master/html/* /var/www/america.example.com/html/</p>
+
+<h3>2.10. Obtain Let&rsquo;s Encrypt SSL Certificate</h3>
+
+<p>The Let&rsquo;s Encrypt offers free SSL certificates.
+These allow your website to be served as HTTPS 
+as well as, or instead of, HTTP.</p>
+
+<p>Before you do this step, you need to check that your
+hostname DNS records have propagated, so that the hostname
+points to your server IP address:</p>
+
+<p class="terminal">yum install bind-utils<br>
+<br>
+nslookup america.example.com 8.8.8.8</p>
+
+<p>Assuming your server IP address is returned,
+you can now proceed. 
+Download the Certbot client for Let&rsquo;s Encrypt:</p>
+
+<p class="terminal">wget https://dl.eff.org/certbot-auto</p>
+
+<p>Move Certbot into a directory in your execution path:</p>
+
+<p class="terminal">mv certbot-auto /usr/local/bin/certbot-auto</p>
+
+<p>Make it executable:</p>
+
+<p class="terminal">chmod 755 /usr/local/bin/certbot-auto</p>
+
+<p>Remove the dummy SSL parameters that come with Apache:</p>
+
+<p class="terminal">rm /etc/httpd/conf.d/ssl.conf</p>
+
+<p>Run Certbot for Apache:</p>
+	
+<p class="terminal">certbot-auto --apache</p>
+
+<p>Certbot will download and install any extra packages it requires.
+
+<p>Respond to the Certbot prompts:</p>
+
+<ol>
+<li>Enter your email address</li>
+<li>Enter <code>a</code> for agree</li>
+<li>Enter <code>y</code> or <code>n</code> to share your email
+address</li>
+<li>Select the appropriate number of your hostname that you require 
+a certificate for</li>
+<li>Select <code>2</code> for automatic redirect from HTTP to HTTPS</li>
+</ol>
+
+<p>Let&rsquo;s Encrypt SSL certificates are valid for 90 days.
+Set everything up for automatic renewal every 90 days:</p>
+	
+<p class="terminal">echo "0 0,12 * * * root python3 -c 'import random; import time; time.sleep(random.random() * 3600)' && /usr/local/bin/certbot-auto renew" | tee -a /etc/crontab > /dev/null</p>
+
+<h3>2.11. Add Domain to CDN</h3>
+
+<p>Now you can add your domain to a Content Distribution Network (CDN). 
+We are using Cloudflare in this example.
+Note that you need to add the domain as a whole (<code>example.com</code>),
+not just your individual hostname (<code>america.example.com</code>)
+to Cloudflare.</p>
+
+<p>If you have not already done so, create your account with Cloudflare.
+Look for a verification email, and click the <strong>Verify email</strong> 
+link.</p>
+
+<p>When your account is verified,
+you can add your domain to Cloudflare. It will ask which plan you want 
+for your domain. Select the <strong>Free</strong> plan, 
+and click <strong>Confirm plan</strong>.</p>
+
+<p>The existing DNS records are retrieved from your registrar. 
+If Cloudflare does not find them automatically, you will need to
+add them manually.
+Click <strong>Continue</strong>.</p>
+
+<p>Cloudflare displays your new nameservers. There are two of them. 
+They will look something like <code>aaaaa.ns.cloudflare.com</code> and 
+<code>bbbbb.ns.cloudflare.com</code>.</p>
+
+<p>Copy the Cloudflare nameservers across to your registrar.
+Submit the changed nameservers to your registrar.</p>
+
+<p>Back on the Cloudflare site, click the button saying 
+you have changed your nameservers and they can now be checked. 
+You will see a message telling you to wait a few hours until your changes 
+have been successfully propagated and verified.
+According to a message on the Cloudflare site,
+it can take up to 24 hours.</p>
+
+<p>Once you have the email saying your site is active on Cloudflare,
+log back into your Cloudflare account,
+and on the <strong>SSL/TLS</strong> tab set 
+SSL/TLS encryption mode to <strong>Full</strong>.</p>
+
+<h3>2.12. Install V2Ray</h3>
+
+<p>To install V2Ray, download the V2Ray installation script:</p>
+
+<p class="terminal">wget https://install.direct/go.sh</p>
+
+<p>Execute the V2Ray installation script:</p>
+
+<p class="terminal">bash go.sh</p>
+
+<p>A default PORT and UUID are displayed toward the end of the install. 
+The port number is needed by Apache.
+The UUID will need to be known by the client when you set it up. 
+The values look something like this:</p>
+
+<p class="terminal">PORT:40455<br>
+UUID:ba4c07d5-db37-4ff8-b086-2b92431dad14</p>
+
+<h3>2.13. Configure V2Ray</h3>
+
+<p>Edit the V2Ray configuration file <code>/etc/v2ray/config.json</code>:</p>
+
+<p class="terminal">vi /etc/v2ray/config.json</p>
+
+<p>Add error logging:</p>
+
+<pre>
+  "log": {
+    "loglevel": "warning",
+    "access": "",
+    "error": "/var/log/v2ray/error.log"
+  },
+</pre>
+
+<p>In the inbound specification, after the <code>port</code> number line, 
+insert a new line to specify that V2Ray should listen only on localhost:</p>
+
+<p class="terminal">"listen": "127.0.0.1",</p>
+
+<p>After the end of the existing inbound <code>settings</code> section:</p>
+
+<ol>
+<li>Add a comma after the closing curly brace</li>
+<li>Add a new section for <code>streamSettings</code></li>
+</ol>
+
+<p>The <code>streamSettings</code> section should look like this. 
+It is best to replace <code>ray</code> by a directory name
+of your own choice that only you know.</p>
+
+<pre>
+"streamSettings": {
+  "network": "ws",
+  "wsSettings": {
+    "path": "/ray/"
+  }
+}
+</pre>
+
+<p>Here is a sample screenshot of the sections we have worked on:</p>
+
+<img src="../images/v2ray-001.png" alt="V2Ray configuration">
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>2.14. Reconfigure Apache</h3>
+
+<p>Set the SELinux boolean to allow Apache to make network connections:</p>
+
+<p class="terminal">setsebool -P httpd_can_network_connect 1</p>
+
+<p>Edit the SSL virtual host configuration file created by Certbot, 
+as usual replacing <code>america.example.com</code> by your actual hostname:</p>
+
+<p class="terminal">vi /etc/httpd/conf.d/america.example.com-le-ssl.conf</p>
+
+<p>Insert a new <code>&lt;Location&gt;</code> block, as show in the model
+below. Replace <code>40455</code> by the actual port number
+generated during the V2Ray installation.
+Replace <code>ray</code> by your actual choice of directory name.</p>
+
+<pre>
+&lt;IfModule mod_ssl.c&gt;
+&lt;VirtualHost *:443&gt;
+    ServerName america.example.com
+    ServerAdmin your.email.id@example.com
+    DocumentRoot /var/www/america.example.com/html
+    &lt;Directory /var/www/america.example.com/html&gt;
+        AllowOverride All
+    &lt;/Directory&gt;
+
+SSLCertificateFile /etc/letsencrypt/live/america.example.com/fullchain.pem
+SSLCertificateKeyFile /etc/letsencrypt/live/america.example.com/privkey.pem
+Include /etc/letsencrypt/options-ssl-apache.conf
+
+  &lt;Location "/ray/"&gt;
+    ProxyPass ws://127.0.0.1:40455/ray/ upgrade=WebSocket
+    ProxyAddHeaders Off
+    ProxyPreserveHost On
+    RequestHeader append X-Forwarded-For %{REMOTE_ADDR}s
+  &lt;/Location&gt;
+&lt;/VirtualHost&gt;
+&lt;/IfModule&gt;
+</pre>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>2.15. Restart Service</h3>
+
+<p>Start V2Ray with your revised configuration file:</p>
+
+<p class="terminal">systemctl start v2ray</p>
+
+<p>Restart Apache with your revised configuration. This may take 
+a few minutes to run:</p>
+
+<p class="terminal">systemctl restart httpd</p>
+
+<h3>12.16. Exit SSH Session</h3>
+
+<p>Your work on the server is done for now. Exit your SSH session by typing 
+the command:</p>
+
+<p class="terminal">
+exit
+</p>
+
+<h2>3. Set Up Client</h2>
+
+<p>On Android devices, you can use V2RayNG or BifrostV for your 
+client software.
+V2RayNG is available from 
+<a href="https://play.google.com/store/apps/details?id=com.v2ray.ang" target="blank">Google Play</a> and 
+<a href="https://github.com/2dust/v2rayNG/releases" target="_blank">Github</a>.
+BifrostV is available from 
+<a href="https://play.google.com/store/apps/details?id=com.github.dawndiy.bifrostv" target="blank">Google Play</a> and 
+<a href="https://apkpure.com/bifrostv/com.github.dawndiy.bifrostv" target="_blank">ApkPure</a>.
+For the rest of this tutorial, we will use V2RayNG
+on our Android client device.</p>
+
+<h3>3.1. Install V2RayNG</h3>
+
+<p>Install V2RayNG from either
+<a href="https://play.google.com/store/apps/details?id=com.v2ray.ang" target="blank">Google Play</a> or
+<a href="https://github.com/2dust/v2rayNG/releases" target="_blank">Github</a>.</p>
+
+<h3>3.2. Configure V2RayNG</h3>
+
+<p>Add a new configuration to V2RayNG with settings that match 
+<code>/etc/v2ray/config.json</code> on your server:</p>
+
+<ul>
+<li>Remarks (for example) <code>America</code></li>
+<li>Address (in our example) <code>america.example.com</code></li>
+<li>Port <code>443</code></li>
+<li>Id (in our example) <code>ba4c07d5-db37-4ff8-b086-2b92431dad14</code></li>
+<li>AlterId <code>64</code></li>
+<li>Security <code>chacha20-poly1305</code></li>
+<li>Network <code>ws</code></li>
+<li>Request Host (in our example) <code>america.example.com</code></li>
+<li>Path (in our example) <code>/ray/</code></li>
+<li>TLS <code>tls</code></li>
+</ul>
+
+<p>Press the check mark to save the configuration.</p>
+
+<img src="../images/v2rayng-001.png" alt="V2RayNG configuration">
+
+<h3>3.3. Connect</h3>
+
+<p>Press the V2RayNG icon at the bottom right to connect.
+The icon turns green.</p>
+
+<h3>3.4. Test</h3>
+
+<p>Test your entire configuration by opening a browser on your Android device
+and visiting 
+<a href="https://ipchicken.com" target="_blank">https://ipchicken.com</a>.</p>
+
+<p>You should see your <em>server</em> IP address, 
+not your <em>client</em> IP address.</p>
+
+<h3>3.5. Disconnect</h3>
+
+<p>Press the V2RayNG icon at the bottom right to disconnect.
+The icon turns gray.</p>
+
+<h2>4. Troubleshoot Issues</h2>
+
+<p>The V2Ray manual is online at
+<a href="" target="_blank">https://v2ray.com</a>.</p>
+
+<p>If you have any problems, here are some steps you can take 
+to troubleshoot.</p>
+
+<p>Firstly, double-check that your client configuration file
+is an exact match for the settings on your server.</p>
+
+<p>On the server,
+you can look at the status of the Apache and V2Ray services:</p>
+
+<p class="terminal">systemctl status httpd</p>
+
+<p class="terminal">systemctl status v2ray</p>
+
+<p>You can query the contents of the systemd journal, 
+as written by systemd-journald.service:</p>
+
+<p class="terminal">journalctl -xe</p>
+
+<p class="terminal">journalctl -u httpd</p>
+
+<p class="terminal">journalctl -u v2ray</p>
+
+<p>You can look at the logs:</p>
+
+<p class="terminal">tail /var/log/messages</p>
+
+<p class="terminal">tail /var/log/httpd/error_log</p>
+
+<p class="terminal">tail /var/log/v2ray/error.log</p>
+
+<p>You can also look at the logs on the client.</p>
+
+<p>Enter any messages you find into a search engine,
+to see if anyone has had the message before.</p>
+
+<p>If you are still stuck, you can ask for help on the 
+Telegram Messenger groups
+<a href="https://t.me/projectv2ray" target="_blank">Project V2Ray</a> and
+<a href="https://t.me/v2rayn" target="_blank">V2RayN&G</a>.</p>
+
+<p>You can report issues on Github:</p>
+
+<ul>
+<li><a href="https://github.com/v2ray/v2ray-core/issues" target="_blank">https://github.com/v2ray/v2ray-core/issues</a></li>
+<li><a href="https://github.com/2dust/v2rayNG/issues" target="_blank">https://github.com/2dust/v2rayNG/issues</a></li>
+</ul>
+
+</div>
+</div>
+
+<div id="footer">
+<div class="content">
+	<p class="logo"><a href="/">LionLibr </a>
+	<a href="https://twitter.com/lionlibr"><img src="../images/twitter-orange.png" 
+		alt="Twitter"></a> 
+	<a href="https://t.me/lionlibr"><img src="../images/telegram-orange.png" 
+		alt="Telegram"></a> 
+	<a href="https://github.com/lionlibr"><img src="../images/github-orange.png" 
+		alt="GitHub"></a>
+	</p>
+</div>
+</div>
+
+</body>
+
+</html>
