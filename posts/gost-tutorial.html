@@ -1,0 +1,579 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>Gost Tutorial</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158089470-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158089470-1');
+</script>
+<meta property="og:title" content="Gost Tutorial">
+<meta property="og:description" content="How to install Gost tunneling tool on a Debian server and a Windows client">
+<meta property="og:image" content="https://www.lionlibr.com/images/gost-opengraph.png">
+<meta property="og:url" content="https://www.lionlibr.com/posts/gost-tutorial.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@lionlibr">
+<meta name="twitter:creator" content="@lionlibr">
+<meta name="twitter:title" content="Gost Tutorial">
+<meta name="twitter:description" content="How to install Gost tunneling tool on a Debian server and a Windows client">
+<meta name="twitter:image" content="https://www.lionlibr.com/images/gost-opengraph.png">
+<link type="text/css" rel="stylesheet"  href="../css/style.css">
+</head>
+
+<body>
+
+<div id="header">
+<div class="content">
+	<p class="logo"><a href="/"><img src="../images/logo-36x36.png" alt="Logo"></a> 
+		<a href="/">LionLibr</a></p>
+</div>
+</div>
+
+<div id="main">
+<div class="content">
+
+	<h1>Gost Tutorial</h1>
+	
+<p>Go Simple Tunnel (Gost) is tunneling software written in the Go language. 
+It connects local nodes to forward nodes, possibly in a chain. 
+Supported protocols include HTTP, HTTPS, HTTP/2, SOCKS4(A), and SOCKS5.</p>
+
+<p>In this tutorial, we present a simple case where traffic from one client 
+is tunneled to one server. The tunneling protocol in this example is HTTP/2. 
+The client in our example runs Windows 10. 
+The server runs Debian 10 and Nginx.</p>
+
+<p>From the client&rsquo;s point of view, traffic is received locally (L) 
+and tunneled to a forward node (F).</p>
+
+<p>From the server&rsquo;s point of view, traffic is received locally (L) 
+and output to the Internet.</p>
+
+<p>Of course, the client&rsquo;s (F) and the server&rsquo;s (L)
+ are exactly the same node &mdash; just seen from 
+ the point of view of the client or 
+ the point of view of the server.</p>
+
+<img src="../images/gost-001.png"
+	alt="Gost tunnels traffic from local (L) to forward (F)">
+
+<h2>1. Set Up Server</h2>
+
+<p>Before you begin, you&rsquo;ll need to acquire a domain name 
+and a server.
+This tutorial assumes you start with a newly created virtual private server 
+(VPS).
+The domain name used in the examples is <code>example.com</code> 
+with a sample hostname of <code>sfo.example.com</code>.</p>
+
+<h3>1.1. SSH as Root</h3>
+
+<p>Log in to your server using a tool such as PuTTY, XSHELL, or PowerShell 
+(if you use Windows on your workstation), or the SSH command in a terminal 
+emulator (if you use Linux or Mac on your workstation).</p>
+
+<p>If your VPS provider sent you a root password by email, then change the root 
+password to something only you know:</p>
+
+<p class="terminal">passwd root</p>
+
+<p>If you do not know the root password, then SSH in as a non-root user, and 
+set the root password:</p>
+
+<p class="terminal">sudo passwd root</p>
+
+<p>If you logged in as a non-root user, then switch to the root user now:</p>
+
+<p class="terminal">su -</p>
+
+<h3>1.2. Update Your Server</h3>
+
+<p>Get your entire system up to date by issuing these commands as root:</p>
+
+<p class="terminal">apt update<br>
+<br>
+apt dist-upgrade<br>
+<br>
+apt autoremove</p>
+
+<h3>1.3. Implement BBR Congestion Control</h3>
+
+<p>Bottleneck Bandwidth and Roundtrip propagation time (BBR) is a congestion 
+control algorithm for Transmission Control Protocol (TCP). It aims to achieve higher bandwidths and lower latencies.</p>
+
+<p>Edit your Linux system control parameters file, 
+<code>/etc/sysctl.conf</code>, to specify the BBR congestion control algorithm. 
+You can use any command-line editor for this. For example, if your favorite 
+editor is the <code>vi</code> editor:</p>
+
+<p class="terminal">vi /etc/sysctl.conf</p>
+
+<p>Alternatively, if your favorite editor is the <code>nano</code> editor:</p>
+
+<p class="terminal">nano /etc/sysctl.conf</p>
+
+<p>Add two lines at the end of the current file:</p>
+
+<p class="terminal">net.core.default_qdisc=fq<br>
+net.ipv4.tcp_congestion_control=bbr</p>
+
+<p>Write the file to disk, and quit the editor. Activate this change by issuing 
+the command:</p>
+
+<p class="terminal">sysctl -p</p>
+
+<h3>1.4. Install Firewall</h3>
+
+<p>Install the <code>nftables</code> firewall package:</p>
+
+<p class="terminal">apt install nftables</p>
+
+<p>Specify that you want to start <code>nftables</code> after every reboot, 
+and start it now:</p>
+
+<p class="terminal">systemctl enable nftables<br>
+<br>
+systemctl start nftables</p>
+
+<h3>1.5. Configure Firewall</h3>
+
+<p>List the current <code>nftables</code> rules:</p>
+
+<p class="terminal">nft list ruleset</p>
+
+<p>You should see a <code>table</code> for <code>inet filter</code>, plus a 
+<code>chain</code> within it for each of <code>input</code>, 
+<code>forward</code>, and <code>output</code>.
+
+<pre>
+table inet filter {
+	chain input {
+		type filter hook input priority 0; policy accept;
+	}
+
+	chain forward {
+		type filter hook forward priority 0; policy accept;
+	}
+
+	chain output {
+		type filter hook output priority 0; policy accept;
+	}
+}
+</pre>
+
+<p>If this table and its chains do <em>not</em> exist, then create them now:</p>
+
+<p class="terminal">nft add table inet filter<br>
+<br>
+nft add chain inet filter input { type filter hook input priority 0 \; policy accept\; }<br>
+<br>
+nft add chain inet filter forward { type filter hook forward priority 0 \; policy accept\; }<br>
+<br>
+nft add chain inet filter output { type filter hook output priority 0 \; policy accept\; }</p>
+
+<p>On the other hand, if these rules <em>do</em> already exist, 
+then simply carry on as follows.</p>
+
+<p>Add a rule to accept all related and established traffic:</p>
+
+<p class="terminal">nft add rule inet filter input ct state related,established counter accept</p>
+
+<p>Add a rule to accept all loopback interface traffic:</p>
+
+<p class="terminal">nft add rule inet filter input iif lo counter accept</p>
+
+<p>For the next rule, you need to know your workstation&rsquo;s 
+Internet Protocol (IP) address. If you do not know your IP address, you can 
+find it out by opening a browser and visiting 
+<a href="https://www.ipip.net" target="_blank">https://www.ipip.net</a> or
+<a href="https://whatismyipaddress.com" target="_blank">https://whatismyipaddress.com</a>.</p>
+
+<p>Let&rsquo;s assume your workstation&rsquo;s IP address is 
+<code>11.22.33.44</code>. If that is realtively fixed, whitelist your 
+IP address for access to port <code>22</code>, 
+which is the port you use for SSH:</p>
+
+<p class="terminal">nft add rule inet filter input tcp dport 22 ip saddr 11.22.33.44/32 counter accept</p>
+
+<p>Alternatively, you can open port <code>22</code> for a range 
+of IP addresses. For example, if your ISP allocates addresses in the range 
+<code>11.22.0.0</code> through <code>11.22.255.255</code>, you could open 
+port <code>22</code> for the entire range like this:</p>
+
+<p class="terminal">nft add rule inet filter input tcp dport 22 ip saddr 11.22.0.0/16 counter accept</p>
+
+<p>If neither of these possibilities works, you will have to open port 
+<code>22</code> for the entire world, like this:</p>
+
+<p class="terminal">nft add rule inet filter input tcp dport 22 counter accept</p>
+
+<p>We will use ports <code>80</code> and <code>443</code> for Gost, 
+so open them too:
+
+<p class="terminal">nft add rule inet filter input tcp dport {http, https} counter accept</p>
+
+<p>Check that the rules now look as expected:</p>
+
+<p class="terminal">nft list ruleset</p>
+
+<p>To persist these changes across reboots, save your rules to 
+<code>/etc/nftables.conf</code>:</p>
+
+<p class="terminal">nft list ruleset > /etc/nftables.conf</p>
+
+<p>Now we are going to change the default policy to drop all other input.</p>
+
+<p>Edit the <code>nftables</code> configuration file in your preferred
+editor. For example, if your preferred editor is the <code>vi</code> 
+editor:</p>
+
+<p class="terminal">vi /etc/nftables.conf</p>
+
+<p>Alternatively, if your preferred editor is the <code>nano</code> 
+editor:</p>
+
+<p class="terminal">nano /etc/nftables.conf</p>
+
+<p>Change the policy from <code>accept</code> to <code>drop</code>:</p>
+
+<pre>
+chain input { 
+        type filter hook input priority 0; policy drop; 
+</pre>
+
+<p>Restart <code>nftables</code> with your new configuration:</p>
+
+<p class="terminal">systemctl restart nftables</p>
+
+<p>Note: Some cloud providers require you also to open your
+server&rsquo;s &ldquo;Security Group.&rdquo;</p>
+
+<h3>1.6. Install Nginx</h3>
+
+<p>Install Nginx:</p>
+
+<p class="terminal">apt install nginx</p>
+
+<h3>1.7. Configure Nginx</h3>
+
+<p>Edit the Nginx default site configuration at 
+<code>/etc/nginx/sites-available/default</code>.
+If you prefer the <code>vi</code> editor, 
+then issue the command:</p>
+
+<p class="terminal">vi /etc/nginx/sites-available/default</p>
+
+<p>Alternatively, if you prefer the <code>nano</code> editor, then issue the 
+command:</p>
+
+<p class="terminal">nano /etc/nginx/sites-available/default</p>
+
+<p>Set the <code>server_name</code> and set a custom 404 page (this is
+the page served if the user requests a page that is not found).
+In the example shown below, we assume your hostname is 
+<code>sfo.example.com</code>. Replace this by your actual hostname:</p>
+
+<pre>
+server_name sfo.example.com;
+error_page 404 /index.html;
+</pre>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<p>To make this change effective, reload your Nginx configuration:</p>
+
+<p class="terminal">systemctl reload nginx</p>
+
+<h3>1.8. Add Website Content</h3>
+
+<p>For extra realism, we will add some sample content to the web server.</p>
+
+<p>Download the archive file for some sample content from GitHub:</p>
+
+<p class="terminal">wget https://github.com/arcdetri/sample-blog/archive/master.zip</p>
+
+<p>Unpack the archive:</p>
+
+<p class="terminal">apt install unzip<br>
+<br>
+unzip master.zip</p>
+
+<p>Copy the downloaded sample blog into your website directory:</p>
+
+<p class="terminal">cp -rf sample-blog-master/html/* /var/www/html/</p>
+
+<h3>1.9. Obtain Let&rsquo;s Encrypt SSL Certificate</h3>
+
+<p>The Let&rsquo;s Encrypt project offers free SSL certificates.
+Before you apply for your SSL certificate, you need to check that your
+hostname DNS records have propagated, so that the hostname
+points to your server IP address:</p>
+
+<p class="terminal">apt install dnsutils<br>
+<br>
+nslookup sfo.example.com 1.1.1.1</p>
+
+<p>Assuming your server IP address is returned,
+you can now proceed. Install the required packages:</p>
+
+<p class="terminal">apt install certbot python-certbot-nginx</p>
+
+<p>Obtain a Let&rsquo;s Encrypt SSL certificate and key:</p>
+
+<p class="terminal">certbot certonly --nginx</p>
+
+<p>Respond to the <code>certbot</code> prompts:</p>
+
+<ol>
+<li>Enter your email address</li>
+<li>Enter <strong>a</strong> for agree</li>
+<li>Enter <strong>y</strong> or <strong>n</strong> to share your email
+address</li>
+<li>Select the appropriate number of your hostname 
+(<code>sfo.example.com</code> in our example) 
+for which you require a certificate</li>
+</ol>
+
+<p>You should see a success message with wording such as
+<code>Congratulations! Your certificate and chain have been saved</code>.</p>
+
+<p>Let&rsquo;s Encrypt SSL certificates are valid for 90 days.
+Set everything up for automatic renewal every 90 days:</p>
+
+<p class="terminal">certbot renew --dry-run</p>
+
+<p>Make your Let&rsquo;s Encrypt certificates and keys readable and 
+your Let&rsquo;s Encrypt directories executable:</p>
+
+<p class="terminal">chmod -R +rx /etc/letsencrypt</p>
+
+<h3>1.10. Install Gost</h3>
+
+<p>On your workstation, open a browser and visit 
+<a href="https://github.com/ginuerzh/gost/releases" target="_blank">https://github.com/ginuerzh/gost/releases</a>.</p>
+
+<p>Look for the latest release of Gost. For us right now, it is 2.10.1.</p>
+
+<p>Now, back on your server,
+download the latest release of Gost for 64-bit Linux like this:
+
+<p class="terminal">wget https://github.com/ginuerzh/gost/releases/download/v2.10.1/gost-linux-amd64-2.10.1.gz</p>
+
+<p>Extract the archive:</p>
+
+<p class="terminal">gunzip gost-linux-amd64–2.10.1.gz</p>
+
+<p>Rename the binary to simply <code>gost</code>:</p>
+
+<p class="terminal">mv gost-linux-amd64-2.10.1 gost</p>
+
+<p>Make gost executable:</p>
+
+<p class="terminal">chmod +x gost</p>
+
+<h3>1.11. Run Gost</h3>
+
+<p>We will run Gost in a separate <code>screen</code> session. 
+Screen is a Linux utility that can be used to multiplex a terminal session 
+into several independent processes.
+It may already be present on your server, so the install command below
+may do nothing:</p>
+
+<p class="terminal">apt install screen</p>
+
+<p>Create a new screen session for Gost named <code>gost</code>:</p>
+
+<p class="terminal">screen -S gost</p>
+
+<p>In the example in this tutorial, Gost on the server received local input (L)
+in the HTTP/2 protocol. If the client does not send the correct user 
+and password, we resist this probe by redirecting their request
+to Nginx, which is listening on port 80.</p>
+
+<p>In the next command, replace <code>user</code> by your choice of user id, 
+replace <code>password</code> by your choice of password, 
+and replace <code>sfo.example.com</code> by your actual hostname. 
+This is one long command, even thought it may span several lines 
+in this post. The backslash (&#92;) indicates that a new line
+character is escaped:</p>
+
+<p class="terminal">./gost -L "http2://user:password@0.0.0.0:443?\
+cert=/etc/letsencrypt/live/sfo.example.com/fullchain.pem\
+&key=/etc/letsencrypt/live/sfo.example.com/privkey.pem\
+&probe_resist=host:127.0.0.1:80"</p>
+
+<p>You will see a message that indicates that Gost is now listening
+on port <code>443</code>:</p>
+
+<p class="terminal">http2://0.0.0.0:443 on [::]:443</p>
+
+<p>To detach from your screen session, type 
+<strong>Ctrl</strong>+<strong>a</strong> followed by <strong>d</strong>.
+
+<h3>1.12. Exit SSH Session</h3>
+
+<p>Your work on the server is done for now. Exit your SSH session by typing 
+the command:</p>
+
+<p class="terminal">exit</p>
+
+<h2>2. Set Up Client</h2>
+
+<p>Now work on the Windows PC that will be your client.</p>
+
+<h3>2.1. Download Gost</h3>
+
+<p>Open a browser, and visit 
+<a href="https://github.com/ginuerzh/gost/releases" target="_blank">https://github.com/ginuerzh/gost/releases</a>.</p>
+
+<p>Download the latest release of Gost for Windows.
+At the time of writing it is named 
+<code>gost-windows-amd64–2.10.1.zip</code>.</p>
+
+<p>In Windows File Explorer, navigate to your <code>Downloads</code>
+folder, then right-click on the zip file and select 
+<strong>Extract All...</strong>.</p>
+
+<h3>2.2. Run Gost</h3>
+
+<p>Open a Command Prompt window by typing 
+<strong>Windows</strong>+<strong>r</strong>,
+entering <code>cmd</code>,
+and clicking <strong>OK</strong>.</p>
+
+<p>Change into the unzipped directory. For example, since we are working
+with version 2.10.1, the command would be:</p>
+
+<p class="terminal">cd Downloads\gost-windows-amd64-2.10.1</p>
+
+<p>Now we invoke Gost to forward local input (L) in SOCKS5 (the default) on 
+port <code>1080</code> to the forward node (F), which is our server
+port <code>443</code>,
+with the required user id and password.
+We use Cloudflare (<code>1.1.1.1</code>) for DNS resolution</p>
+
+<p>In the next command, replace <code>user</code> by your choice of user id, 
+replace <code>password</code> by your choice of password, 
+and replace <code>sfo.example.com</code> by your actual hostname. 
+This is one long command, even thought it may span more than one line 
+on your screen:</p>
+
+<p class="terminal">gost-windows-amd64 -L :1080?dns=1.1.1.1/tcp-chain -F http2://user:password@sfo.example.com:443</p>
+
+<p>If necessary, click <strong>Yes</strong> to allow access.</p>
+
+<p>Leave your Command Prompt window open.</p>
+
+<h3>2.3. Configure Browser</h3>
+
+<p>Now configure your browser to use Gost, which is listening locally on 
+port <code>1080</code>.</p>
+
+<p>In Firefox, from the hamburger menu select <strong>Options</strong>. 
+Under Network Settings, select <strong>Settings</strong>. 
+Choose <strong>Manual proxy configuration</strong>, 
+SOCKS Host <code>127.0.0.1</code>, 
+Port <code>1080</code>, 
+<strong>SOCKS v5</strong>. 
+Choose <strong>Proxy DNS when using SOCKS v5</strong>. 
+Click <strong>OK</strong>.</p>
+
+<img src="../images/firefox-000.png" 
+	alt="Firefox configured to use a proxy server">
+
+<p>In Chrome, you can configure your browser to use a proxy server 
+by installing and configuring the extension SwitchyOmega by FelisCatus 
+from the Chrome Web Store at 
+<a href="https://chrome.google.com/webstore/category/extensions" target="_blank">https://chrome.google.com/webstore/category/extensions</a>.
+On the SwitchyOmega dashboard, click the <strong>PROFILE</strong>
+marked <code>proxy</code>.
+Specify protocol <strong>SOCKS v5</strong>, 
+Server <code>127.0.0.1</code>, and Port <code>1080</code>.
+Click <strong>Apply changes</strong>.
+Find the SwitchyOmega logo at the top right of Chrome.
+Initially it is black for <code>System Proxy</code>.
+Select <code>proxy</code> to activate it.
+The SwitchyOmega logo at the top right of Chrome turns pale blue.</p>
+
+<img src="../images/chrome-000.png"
+	alt="Chrome configured to use a proxy server">
+
+<h3>2.4. Test Browser</h3>
+
+<p>Test your browser by visiting 
+<a href="https://ipchicken.com" target="_blank">https://ipchicken.com</a>.</p>
+
+<p>You should see your <em>server</em> IP address, 
+not your <em>client</em> IP address.</p>
+
+<h3>2.5. End Browsing Session</h3>
+
+<p>Close the Command Prompt window with Gost running in it.</p>
+
+<p>Set your browser back to its direct, non-proxied settings.</p>
+
+<h2>3. Troubleshoot Issues</h2>
+
+<p>You can find more information on Gost on the Gost wiki at 
+<a href="https://docs.ginuerzh.xyz/gost/" target="_blank">https://docs.ginuerzh.xyz/gost/</a>.
+Information is available in 中文 and English.</p>
+
+<p>If you have any problems, here are some steps you can take 
+to troubleshoot.</p>
+
+<p>Firstly, double-check that your client parameters
+are an exact match for the paremeters on your server.</p>
+
+<p>On the Windows client, if you are using Chrome, try switching to Firefox, 
+and vica versa.</p>
+
+<p>Your Gost Command Prompt window on your PC
+may show some error messages. Technical problems in Windows may also result 
+in messages in the Windows Event Viewer (type <code>event viewer</code> in the 
+Windows 10 search box, and select the <strong>Event Viewer</strong> app).</p>
+
+<p>On the Debian server, you can look for messages 
+in the Gost screen session. SSH back into your server,
+and reattach the screen session named <code>gost</code>:</p>
+
+<p class="terminal">screen -r gost</p>
+
+<p>Look for messages. When you are done, detach from your screen session
+by typing <strong>Ctrl</strong>+<strong>a</strong> 
+followed by <strong>d</strong>.
+
+<p>For serious system errors, you can also look for messages
+in your server&rsquo;s <code>/var/log</code> directory.</p>
+
+<p>You can ask any unresolved questions you may have about Gost 
+in the Telegram Messenger group
+<a href="https://t.me/gogost" target="_blank">Gost</a>.</p>
+
+<p>If you still have a problem, you can create a new issue on 
+<a href="https://github.com/ginuerzh/gost/issues" target="_blank">https://github.com/ginuerzh/gost/issues</a>.</p>
+	
+</div>
+</div>
+
+<div id="footer">
+<div class="content">
+	<p class="logo"><a href="/">LionLibr </a>
+	<a href="https://twitter.com/lionlibr"><img src="../images/twitter-orange.png" 
+		alt="Twitter"></a> 
+	<a href="https://t.me/lionlibr"><img src="../images/telegram-orange.png" 
+		alt="Telegram"></a> 
+	<a href="https://github.com/lionlibr"><img src="../images/github-orange.png" 
+		alt="GitHub"></a>
+	</p>
+</div>
+</div>
+
+</body>
+
+</html>
