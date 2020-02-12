@@ -78,19 +78,21 @@ with a sample hostname of <code>sfo.example.com</code>.</p>
 (if you use Windows on your workstation), or the SSH command in a terminal 
 emulator (if you use Linux or Mac on your workstation).</p>
 
-<p>If your VPS provider sent you a root password by email, then change the root 
-password to something only you know. If you are already logged in as root:</p>
+<p>If your VPS provider sent you a root password by email, then 
+log in as root and change the root password to something only you know:</p>
 
 <p class="terminal">passwd root</p>
 
 <p>If you do not know the root password, then SSH in as a non-root user, and 
-set the root password to something you know:</p>
+set the root password to something you do know:</p>
 
 <p class="terminal">sudo passwd root</p>
 
-<p>Then switch to the root user now:</p>
+<p>Then switch to the root user:</p>
 
 <p class="terminal">su -</p>
+
+<p>For the rest of this tutorial, we assume you are logged in as root.</p>
 
 <h3>1.2. Update Your Server</h3>
 
