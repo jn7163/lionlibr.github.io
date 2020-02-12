@@ -79,16 +79,16 @@ with a sample hostname of <code>sfo.example.com</code>.</p>
 emulator (if you use Linux or Mac on your workstation).</p>
 
 <p>If your VPS provider sent you a root password by email, then change the root 
-password to something only you know:</p>
+password to something only you know. If you are already logged in as root:</p>
 
 <p class="terminal">passwd root</p>
 
 <p>If you do not know the root password, then SSH in as a non-root user, and 
-set the root password:</p>
+set the root password to something you know:</p>
 
 <p class="terminal">sudo passwd root</p>
 
-<p>If you logged in as a non-root user, then switch to the root user now:</p>
+<p>Then switch to the root user now:</p>
 
 <p class="terminal">su -</p>
 
@@ -105,7 +105,8 @@ apt autoremove</p>
 <h3>1.3. Implement BBR Congestion Control</h3>
 
 <p>Bottleneck Bandwidth and Roundtrip propagation time (BBR) is a congestion 
-control algorithm for Transmission Control Protocol (TCP). It aims to achieve higher bandwidths and lower latencies.</p>
+control algorithm for Transmission Control Protocol (TCP). It aims to achieve 
+higher bandwidths and lower latencies.</p>
 
 <p>Edit your Linux system control parameters file, 
 <code>/etc/sysctl.conf</code>, to specify the BBR congestion control algorithm. 
@@ -195,7 +196,7 @@ find it out by opening a browser and visiting
 <a href="https://whatismyipaddress.com" target="_blank">https://whatismyipaddress.com</a>.</p>
 
 <p>Let&rsquo;s assume your workstation&rsquo;s IP address is 
-<code>11.22.33.44</code>. If that is realtively fixed, whitelist your 
+<code>11.22.33.44</code>. If that is relatively fixed, whitelist your 
 IP address for access to port <code>22</code>, 
 which is the port you use for SSH:</p>
 
