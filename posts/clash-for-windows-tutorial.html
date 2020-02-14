@@ -1,0 +1,549 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>Clash for Windows Tutorial</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158089470-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158089470-1');
+</script>
+<meta property="og:title" content="Clash for Windows Tutorial">
+<meta property="og:description" content="How to use Clash for V2Ray on a Windows client">
+<meta property="og:image" content="https://www.lionlibr.com/images/clashwin-opengraph.png">
+<meta property="og:url" content="https://www.lionlibr.com/posts/clash-for-windows-tutorial.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@lionlibr">
+<meta name="twitter:creator" content="@lionlibr">
+<meta name="twitter:title" content="Clash for Windows Tutorial">
+<meta name="twitter:description" content="How to use Clash for V2Ray on a Windows client">
+<meta name="twitter:image" content="https://www.lionlibr.com/images/clashwin-opengraph.png">
+<link type="text/css" rel="stylesheet"  href="../css/style.css">
+</head>
+
+<body>
+
+<div id="header">
+<div class="content">
+	<p class="logo"><a href="/"><img src="../images/logo-36x36.png" alt="Logo"></a> 
+		<a href="/">LionLibr</a></p>
+</div>
+</div>
+
+<div id="main">
+<div class="content">
+
+	<h1>Clash for Windows Tutorial</h1>
+	
+<p>Clash is a cross-platform proxy client written in Go. 
+It supports Shadowsocks and V2Ray servers, though not ShadowsocksR. 
+The core Clash client is available for macOS, FreeBSD, Linux, 
+and Windows. &ldquo;Clash for Windows&rdquo; is a graphical user interface 
+(GUI) for Clash on Windows.</p>
+
+<p>This tutorial will demonstrate both core Clash from the command line 
+on a Windows platform and the Clash for Windows GUI.</p>
+
+<h2>1. Create V2Ray Server</h2>
+
+<p>To follow along with this tutorial, you will need a V2Ray server.
+The examples in this tutorial use a V2Ray server that implements 
+the WebSocket protocol.
+Tutorials elsewhere on this site explain in more detail
+how to create a V2Ray server.
+Therefore we will repeat here only the most essential steps
+to create a V2Ray server.
+This outline is for a server running 
+CentOS 8 with an Nginx frontend.
+We assume that you start with a server that is up to datetime
+and with a firewall that is open for HTTP and HTTPS.</p>
+
+<h3>1.1. Install Nginx</h3>
+
+<p>Install and start Nginx:</p>
+
+<p class="terminal">yum install nginx<br>
+<br>
+systemctl enable nginx<br>
+<br>
+systemctl start nginx<br>
+
+<h3>1.2. Add Content</h3>
+
+<p>Add some sample content to the web server:</p>
+
+<p class="terminal">yum install wget zip unzip<br>
+<br>
+wget https://github.com/lionlibr/sample-hexo-blog/archive/master.zip<br>
+<br>
+unzip master.zip<br>
+<br>
+cd sample-hexo-blog-master<br>
+<br>
+cp -rf public/* /usr/share/nginx/html/</p>
+
+<p>You can now test that your basic web server and its content 
+appear as expected in a browser:</p>
+
+<img src="../images/sample-hexo-blog-001.png" alt="Sample Hexo blog">
+
+<h3>1.3. Install V2Ray</h3>
+
+<p>Install V2Ray:</p>
+
+<p class="terminal">cd ~<br>
+<br>
+wget https://install.direct/go.sh<br>
+<br>
+bash go.sh</p>
+
+<h3>1.4. Configure V2Ray</h3>
+
+<p>Edit configuration file <code>/etc/v2ray/config.json</code>.
+Add error logging, make it listen on localhost only,
+and add specification of the WebSocket protocol 
+and path <code>/secret/</code>.
+The results will look like this, except with your 
+<code>port</code> and <code>id</code>:</p>
+
+<pre>
+{
+  "log": {
+    "loglevel": "warning",
+    "access": "",
+    "error": "/var/log/v2ray/error.log"
+  },
+  "inbounds": [{
+    "port": 38483,
+    "listen": "127.0.0.1",
+    "protocol": "vmess",
+    "settings": {
+      "clients": [
+        {
+          "id": "7d5af219-0ac5-491b-bfa8-68968d7a2774",
+          "level": 1,
+          "alterId": 64
+        }
+      ]
+    },
+    "streamSettings": {
+      "network": "ws",
+      "wsSettings": {
+        "path": "/secret/"
+      }
+    }
+  }],
+  "outbounds": [{
+    "protocol": "freedom",
+    "settings": {}
+  },{
+    "protocol": "blackhole",
+    "settings": {},
+    "tag": "blocked"
+  }],
+  "routing": {
+    "rules": [
+      {
+        "type": "field",
+        "ip": ["geoip:private"],
+        "outboundTag": "blocked"
+      }
+    ]
+  }
+}
+</pre>
+
+<h3>1.5. Reconfigure Nginx</h3>
+
+<p>Edit <code>/etc/nginx/nginx.conf</code>. Set the server name.
+For example, if your hostname is
+<code>sanfrancisco.example.com</code>:</p>
+
+<p class="terminal">server_name sanfrancisco.example.com;</a>
+
+<p>Create <code>/etc/nginx/default.d/v2ray.conf</code>. 
+Specify a location block to send requests for the <code>/secret/</code> 
+directory to V2Ray on its listening port. With our example of
+port <code>38483</code>:</p>
+
+<pre>
+location /secret/ {
+        proxy_redirect off;
+        proxy_pass http://127.0.0.1:38483/secret/;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+}
+</pre>
+
+<p>Set the SELinux boolean to allow Nginx to make network connections:</p>
+
+<p class="terminal">setsebool -P httpd_can_network_connect 1</p>
+
+<h3>1.6. Restart Services</h3>
+
+<p>Restart V2Ray and Nginx with their new configurations:</p>
+
+<p class="terminal">systemctl start v2ray<br>
+<br>
+systemctl restart nginx</p>
+
+<h2>2. Create Clash Configuration File</h2>
+
+<p>Now that you have a V2Ray server, you can proceed to 
+connect to it from your Windows client using core Clash 
+from the command line.</p>
+
+<h3>2.1. Format</h3>
+
+<p>Clash is driven by a configuration file in &ldquo;YAML Ain&rsquo;t Markup 
+Language&rdquo; (YAML) format. 
+The documentation for the configuration file format is at 
+<a href="https://github.com/Dreamacro/clash#config" target="_blank">https://github.com/Dreamacro/clash#config</a>.</p>
+
+<h3>2.2. Example</h3>
+
+<p>Here is an example of a simple Clash configuration file.
+This one is designed to match up with the V2Ray configuration give above.</p>
+
+<pre>
+port: 7890
+socks-port: 7891
+allow-lan: false
+mode: Rule
+log-level: info
+external-controller: 127.0.0.1:9090
+Proxy:
+  - name: "San Francisco"
+    type: vmess
+    server: sanfrancisco.example.com
+    port: 80
+    uuid: 7d5af219-0ac5-491b-bfa8-68968d7a2774
+    alterId: 64
+    cipher: auto
+    network: ws
+    ws-path: /secret/
+    ws-headers:
+      Host: sanfrancisco.example.com
+Proxy Group:
+  - name: Proxy
+    type: select
+    proxies:
+      - "San Francisco"
+Rule:
+  - IP-CIDR,127.0.0.0/8,DIRECT
+  - GEOIP,CN,DIRECT
+  - FINAL,Proxy
+</pre>
+
+<h3>2.3. Create Configuration File</h3>
+
+<p>The default configuration directory for Clash is 
+<code>%HOMEPATH%\.config\clash</code>.</p>
+
+<p>On your client PC,
+open a Windows Command Prompt (<strong>Windows</strong>+<strong>r</strong>, 
+type <code>cmd</code>, and click <strong>OK</strong>).</p>
+
+<p>Make the required directory:</p>
+
+<p class="terminal">mkdir .config<br>
+<br>
+cd .config<br>
+<br>
+mkdir clash</p>
+
+<p>Close the Command Prompt window.</p>
+
+<p>In a text editor such as Notepad or Notepad++, start a new file 
+for your Clash configuration. Add content to the configuration file,
+based on the template above. At a minimum, you will likely want to replace:</p>
+
+<ul>
+<li><code>name</code></li>
+<li><code>server</code></li>
+<li><code>uuid</code></li>
+<li><code>ws-path</code></li>
+<li><code>Host</code></li>
+<li><code>proxies</code></li>
+</ul>
+
+<p>Save the file in your <code>%HOMEPATH%\.config\clash</code> directory 
+with the name <code>config.yaml</code>. Close the text editor.</p>
+
+<h2>3. Install and Run Command-Line Clash</h2>
+
+<h3>3.1. Download Clash</h3>
+
+<p>Binaries for macOS, FreeBSD, Linux, and Windows are available for download 
+from <a href="https://github.com/Dreamacro/clash/releases" target="_blank">https://github.com/Dreamacro/clash/releases</a>.</p>
+
+<p>Download the most recent file for Windows.
+In our example, we will use <code>clash-windows-amd64-v0.17.1.zip</code>.</p>
+
+<p>Unzip your downloaded zip file.
+This creates a folder, <code>Downloads\clash-windows-amd64-v0.17.1</code>.</p>
+
+<h3>3.2. Run Clash</h3>
+
+<p>Open a Command Prompt window by typing 
+<strong>Windows</strong>+<strong>r</strong>,
+entering <code>cmd</code>,
+and clicking <strong>OK</strong>.</p>
+
+<p>Change into the unzipped directory. Continuing our example:</p>
+
+<p class="terminal">cd Downloads\clash-windows-amd64-v0.17.1</p>
+
+<p>Issue the command:</p>
+
+<p class="terminal">clash-windows-amd64</p>
+
+<p>The first time you run Clash, it cannot find the country database,
+<code>Country.mmdb</code>. It therefore downloads it.
+It then listens on ports <code>9090</code> 
+(for the API), <code>7891</code> (for the SOCKS proxy), 
+and <code>7890</code> (for the HTTP proxy).</p>
+
+<p>Leave the Command Prompt window open, with 
+Clash running in it.</p>
+
+<h3>3.3. Configure Browser</h3>
+
+<p>Now configure your browser to use the SOCKS proxy 
+listening on localhost port <code>7891</code>:</p>
+
+<ul>
+
+<li>In Firefox, from the hamburger menu select <strong>Options</strong>. 
+Under Network Settings, select <strong>Settings</strong>. 
+Choose <strong>Manual proxy configuration</strong>, 
+SOCKS Host <code>127.0.0.1</code>, 
+Port <code>7891</code>, 
+<strong>SOCKS v5</strong>. 
+Choose <strong>Proxy DNS when using SOCKS v5</strong>. 
+Click <strong>OK</strong>.</li>
+
+<li>In Chrome, you can configure your browser to use a proxy server 
+by installing and configuring the extension SwitchyOmega by FelisCatus 
+from the Chrome Web Store at 
+<a href="https://chrome.google.com/webstore/category/extensions" target="_blank">https://chrome.google.com/webstore/category/extensions</a>.
+On the SwitchyOmega dashboard, click the <strong>PROFILE</strong>
+marked <code>proxy</code>.
+Specify protocol <strong>SOCKS v5</strong>, 
+Server <code>127.0.0.1</code>, and Port <code>7891</code>.
+Click <strong>Apply changes</strong>.
+Find the SwitchyOmega logo at the top right of Chrome.
+Initially it is black for <code>System Proxy</code>.
+Select <code>proxy</code> to activate it.
+The SwitchyOmega logo at the top right of Chrome turns pale blue.</li>
+
+</ul>
+
+<h3>3.4. Test Browser</h3>
+
+<p>Test your browser by visiting 
+<a href="" target="_blank">https://ipchicken.com</a>. 
+You should see your <em>server</em> IP address, 
+not your <em>client</em> IP address.</p>
+
+<h3>3.5. Stop Test</h3>
+
+<p>When you are done, go back to the Command Prompt window 
+where Clash is running. 
+Do <strong>Ctrl</strong>+<strong>c</strong> to stop Clash. 
+Close the Command Prompt window.</p>
+
+<p>Set your browser back to its direct, non-proxied settings.</p>
+
+<h3>3.6. Clean Up</h3>
+
+<p>To prepare for the next test:</p>
+
+<ol>
+<li>Copy <code>config.yaml</code> from your
+<code>.config\clash</code> folder into your <code>Downloads</code> folder</li>
+<li>Rename <code>Downloads\config.yaml</code> to 
+<code>Downloads\profile.yml</code>
+<li>Delete your <code>.config\clash</code> folder
+</ol>
+
+<h2>4. Install and Run Clash for Windows</h2>
+
+<p>Now we will switch from using the command-line interface (CLI) 
+to the GUI.</p>
+
+<p>If you have followed the steps above, you should start this step
+with a <code>Downloads\profile.yml</code> file ready for the GUI.</p>
+
+<h3>4.1. Download Installer</h3>
+
+<p>Visit Github at <a href="https://github.com/Fndroid/clash_for_windows_pkg/releases" target="_blank">https://github.com/Fndroid/clash_for_windows_pkg/releases</a>.</p>
+
+<img src="../images/clashwin-001.png" alt="Clash for Windows releases">
+
+<p>Download the most recent installer. At the time of writing, this is
+named <code>Clash.for.Windows.Setup.0.8.10.exe</code>.</p>
+
+<img src="../images/clashwin-002.png" alt="Clash for Windows installer">
+
+<h3>4.2. Install Clash for Windows</h3>
+
+<p>Launch <code>Clash.for.Windows.Setup.0.8.10.exe</code>.</p>
+
+<img src="../images/clashwin-003.png" alt="Launch installer">
+
+<p>Windows Defender SmartScreen may pop up. If this happens, click 
+<strong>More info</strong>.</p>
+
+<img src="../images/clashwin-004.png" alt="SmartScreen More info">
+
+<p>Select <strong>Run anyway</strong>.</p>
+
+<img src="../images/clashwin-005.png" alt="SmartScreen Run anyway">
+
+<p>During installation, select who will run Clash for Windows: 
+either anyone or only you. The &ldquo;Anyone&rdquo; option requires
+Administrator rights on the PC.</p>
+
+<img src="../images/clashwin-006.png" alt="Anyone option">
+
+<p>Click <strong>Yes</strong> to allow the installer 
+to make changes to your computer.</p>
+
+<img src="../images/clashwin-007.png" alt="Allow changes">
+
+<p>Accept the default installation location.</p>
+
+<img src="../images/clashwin-008.png" alt="Installation folder">
+
+<p>At the end of installation, leave the box checked to start Clash for Windows.</p>
+
+<img src="../images/clashwin-009.png" alt="Start Clash for Windows">
+
+<h3>4.3. Run Clash for Windows</h3>
+
+<p>Locate the Clash for Windows icon in the system tray.
+It looks like a dark blue cat.
+Right-click on the icon, and select the option to bring up the Dashboard. 
+The first time you bring up the Dashboard, you may get an error message. 
+If this happens, just quit and restart Clash for Windows.</p>
+
+<p>Now you will see the initial Dashboard:</p>
+
+<img src="../images/clashwin-010.png" alt="Start Clash for Windows dashboard">
+
+<h3>4.4. Configure Clash for Windows</h3>
+
+<p>On the <strong>General</strong> tab, 
+toggle <strong>System Proxy</strong> to the <strong>ON</strong> position.
+This saves having to manually configure each browser to use Clash.</p>
+
+<img src="../images/clashwin-011.png" alt="System Proxy">
+
+<p>Go to the <strong>Profiles</strong> tab. The initial configuration file is 
+<code>.config\clash\config.yml</code>
+(note that the file extension ends in <code>yml</code>, 
+not <code>yaml</code>).</p>
+
+<img src="../images/clashwin-012.png" alt="Initial config.yml profile"> 
+
+<p>You can either download a configuration file from an online URL, 
+or you can manually import a configuration file you have already downloaded. 
+The online URL method is intended for service providers.
+For this tutorial, we will import a local configuration file.</p>
+
+<p>In real life, the imported file might be a partial profile 
+containing only Proxy, Proxy Group, and Rule. 
+For the purposes of this introduction, we will simply reuse 
+the configuration file we used for the CLI version of Clash.</p>
+
+<p>Drag and drop your <code>Downloads\profile.yml</code> file 
+from your <code>Downloads</code> folder into the Clash for Windows
+dashboard. Select it, and it will be highlighted:</p>
+
+<img src="../images/clashwin-013.png" alt="Imported profile"> 
+
+<p>On the <strong>Proxies</strong> tab, select your Proxy:</p>
+
+<img src="../images/clashwin-014.png" alt="Proxy selected"> 
+
+<h3>4.5. Test Clash for Windows</h3>
+
+<p>Open a browser.</p>
+
+<p>Start playing a video from 
+<a href="https://www.youtube.com" target="_blank">YouTube</a>.
+Leave the video playing, and go to the <strong>Connections</strong> tab. 
+You will see your active connections:</p>
+
+<img src="../images/clashwin-015.png" alt="Connections">
+
+<h3>4.6. Stop Test</h3>
+
+<p>This is the end of this tutorial.</p>
+
+<p>Stop the YouTube. 
+Locate the Clash for Windows icon in the system tray, 
+right-click on it, and select <strong>Quit</strong>.</p>
+
+<h2>5. Troubleshoot Issues</h2>
+
+<p>If you encounter any problems when using Clash for Windows, 
+try to troubleshoot yourself first.</p>
+
+<p>Firstly, double-check that your client configuration,
+your server V2Ray configuration, and your server Nginx configuration
+all match up with each other.</p>
+
+<p>Check the latest logs on the client under the configuration folder,
+<code>%HOMEPATH%\.config\clash\logs</code>.</p>
+
+<p>If you have access to the V2Ray server, you can look in
+<code>/var/log/v2ray/error.log</code> and
+<code>/var/log/nginx/error.log</code>.</p>
+
+<p>Use a search engine to see if anyone else
+has reported the same error before.</p>
+
+<p>If you need a developer answer, 
+ go to Github and create a new issue at:</p>
+
+<ul>
+<li><a href="https://github.com/Dreamacro/clash/issues" target="_blank">https://github.com/Dreamacro/clash/issues</a> 
+for core Clash</li>
+<li><a href="https://github.com/Fndroid/clash_for_windows_pkg/issues" target="_blank">https://github.com/Fndroid/clash_for_windows_pkg/issues</a> 
+for Clash for Windows GUI</li>
+</ul>
+
+<p>Clash for Windows is documented in 中文 at 
+<a href="https://docs.cfw.lbyczf.com" target="_blank">https://docs.cfw.lbyczf.com</a>.</p>
+
+<p>The Clash API is documented at 
+<a href="https://clash.gitbook.io" target="_blank">https://clash.gitbook.io</a>.</p>
+
+</div>
+</div>
+
+<div id="footer">
+<div class="content">
+	<p class="logo"><a href="/">LionLibr </a>
+	<a href="https://twitter.com/lionlibr"><img src="../images/twitter-orange.png" 
+		alt="Twitter"></a> 
+	<a href="https://t.me/lionlibr"><img src="../images/telegram-orange.png" 
+		alt="Telegram"></a> 
+	<a href="https://github.com/lionlibr"><img src="../images/github-orange.png" 
+		alt="GitHub"></a>
+	</p>
+</div>
+</div>
+
+</body>
+
+</html>
