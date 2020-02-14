@@ -119,11 +119,9 @@ set the root password:</p>
 <p class="terminal">alias vi=vim</p>
 
 <p>Also edit <code>/etc/profile</code> and insert the same
-command to apply automaticall to future logins:</p>
+command to apply automatically to future logins:</p>
 
 <p class="terminal">alias vi=vim</p>
-
-<p>Write the file to disk, and quit the editor.</p>
 
 <h3>2.4. Implement BBR Congestion Control</h3>
 
@@ -201,9 +199,13 @@ and <code>services</code>:</p>
 
 <p>We now prevent any other public IP addresses from reaching port 22 
 (the SSH port) by removing the <code>ssh</code> service from the 
-<code>public</code> zone:</p>
+<code>public</code> zone.
+Also remove <code>cockpit</code> (server management GUI)
+from public access.</p></p>
 
 <p class="terminal">firewall-cmd --permanent --zone=public --remove-service=ssh<br>
+<br>
+firewall-cmd --permanent --zone=public --remove-service=cockpit<br>
 <br>
 firewall-cmd --reload<br>
 <br>
