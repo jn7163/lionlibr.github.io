@@ -100,13 +100,11 @@ code {
 	color:#050;
 }
 img {
-	display: block;
-	margin:0 auto;
-}
-img.center {
 	max-width:100%;
 	width:auto;
 	height:auto;
+}
+img.center {
 	display: block;
 	margin:0 auto;
 }
