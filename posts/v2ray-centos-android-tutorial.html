@@ -188,10 +188,7 @@ port <code>22</code> for the entire range like this:</p>
 
 <p class="terminal">firewall-cmd --permanent --zone=trusted --add-source=11.22.0.0/16</p>
 
-<p>If neither of these possibilities works, you will have to open port 
-<code>22</code> for the entire world. This is dangerous!</p>
-
-<p class="terminal">firewall-cmd --permanent --zone=trusted --add-source=0.0.0.0/0</p>
+<p>Do not open port <code>22</code> for the entire world.</p>
 
 <p>Reload the firewall rules:</p>
 

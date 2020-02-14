@@ -206,10 +206,7 @@ port <code>22</code> for the entire range like this:</p>
 
 <p class="terminal">nft add rule inet filter input tcp dport 22 ip saddr 11.22.0.0/16 counter accept</p>
 
-<p>If neither of these possibilities works, you will have to open port 
-<code>22</code> for the entire world, like this:</p>
-
-<p class="terminal">nft add rule inet filter input tcp dport 22 counter accept</p>
+<p>Do not open port <code>22</code> for the entire world.</p>
 
 <p>We will use ports <code>80</code> and <code>443</code> for Trojan, 
 so open them too:
