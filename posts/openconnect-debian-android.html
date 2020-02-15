@@ -45,7 +45,8 @@ protocols fail. It is a Secure Sockets Layer (SSL)
 virtual private network (VPN). This means that it uses
 the same Transport Layer Security (TLS) as is used by ordinary
 websites that support HTTPS. The consequence is that OpenConnect can often 
-pass by censors undetected.</p>
+pass by censors undetected. It has also (currently experimental) compatibility 
+with clients using the AnyConnect SSL VPN protocol.</p>
 
 <p>This tutorial will show you how to install OpenConnect SSL VPN 
 on a Debian server and an Android client.</p>
@@ -270,7 +271,8 @@ points to your server IP address:</p>
 <br>
 nslookup europe.example.com 1.1.1.1</p>
 
-<p>Wait until this command returns your server IP address.</p>
+<p>If you receive an <code>NXDOMAIN</code> response, wait a while, then repeat
+the <code>nslookup</code> command until it returns your server IP address.</p>
 
 <p>Install the Let&rsquo;s Encrypt client, Certbot:</p>
 
@@ -301,11 +303,17 @@ Set everything up for automatic renewal every 90 days:</p>
 
 <h3>1.7. Install OpenConnect</h3>
 
-<p>Install OpenConnect from the Debian repositories.
-We do not need the Network Manager graphical user interface (GUI)
-for OpenConnect &mdash; just the OpenConnect server package:</p>
+<p>Install OpenConnect from the Debian repositories. Note that 
+we do not need the OpenConnect client (<code>openconnect</code>) or the related
+Network Manager graphical user interface (GUI) for OpenConnect &mdash; 
+just the OpenConnect server package, <code>ocserv</code>:</p>
 
 <p class="terminal">apt install ocserv</p>
+
+<p>The version of <code>ocserv</code> in the Debian repositories 
+is 0.12.2. This should suit most people. If you want a more recent version, 
+you will need to 
+<a href="http://www.infradead.org/openconnect/building.html" target="_blank">build from source</a>.</p>
 
 <h3>1.8. Create Passwords</h3>
 
@@ -331,7 +339,7 @@ for each new user.</p>
 
 <h3>1.9. Configure OpenConnect</h3>
 
-<p>Now we come to the major coniguration of OpenConnect.
+<p>Now we come to the main coniguration of OpenConnect.
 Edit the configuration file.
 If your preferred editor is the <code>vi</code> editor:</p>
 
@@ -469,13 +477,17 @@ This is called masquerading.</p>
 
 <p class="terminal">nft add table nat</p>
 
-<p>Add the chains and rules to perform outbound IP address masquerading:</p>
+<p>Add prerouting and postrouting chains:</p>
 
 <p class="terminal">nft add chain nat prerouting { type nat hook prerouting priority 0 \; }<br>
 <br>
-nft add chain nat postrouting { type nat hook postrouting priority 100 \; }<br>
-<br>
-nft add rule nat postrouting ip saddr 10.10.0.0/24 oif eth0 masquerade</p>
+nft add chain nat postrouting { type nat hook postrouting priority 100 \; }</p>
+
+<p>Add a rule to perform outbound IP address masquerading
+for any packet with a source address in the <code>10.10.0.0/24</code> 
+range :</p>
+
+<p class="terminal">nft add rule nat postrouting ip saddr 10.10.0.0/24 oif eth0 masquerade</p>
 
 <p>Save the revised firewall rules as they now stand:</p>
 
@@ -512,27 +524,39 @@ the command:</p>
 <p>Insert the hostname or IP address for your server. 
 Tap <strong>OK</strong>.</p>
 
-<img class="center" src="../images/openconnect-002.png" alt="OpenConnect hostname">
+<img class="center" src="../images/openconnect-002.png" alt="Add profile hostname">
 
-<p>Give the profile a name.</p>
+<p>Give the profile a meaningful name.</p>
 
-<img class="center" src="../images/openconnect-003.png" alt="OpenConnect profile name">
+<img class="center" src="../images/openconnect-003.png" alt="Give profile a name">
+
+<p>The profile now has your intended name.
+Use the Android back button to return to the main screen.</p>
+
+<img class="center" src="../images/openconnect-004.png" alt="Profile renamed">
+
+<p>The new profile is listed.</p>
+
+<img class="center" src="../images/openconnect-005.png" alt="OpenConnect initial screen">
 
 <h3>2.3. Connect</h3>
 
-<p>Select and long press the profile to connect. Tap <strong>OK</strong>.</p>
+<p>Press the profile to connect.</p>
 
-<img class="center" src="../images/openconnect-004.png" alt="OpenConnect ok to connect">
+<img class="center" src="../images/openconnect-006.png" alt="Press profile">
 
-<p>Enter your username and tap <strong>OK</strong>.
-On the next screen, enter your password and tap <strong>OK</strong>.</p>
+<p>Enter your username and tap <strong>OK</strong>.</p>
 
-<img class="center" src="../images/openconnect-005.png" alt="OpenConnect enter username">
+<img class="center" src="../images/openconnect-007.png" alt="Enter username">
+
+<p>On the next screen, enter your password and tap <strong>OK</strong>.</p>
+
+<img class="center" src="../images/openconnect-008.png" alt="Enter password">
 
 <p>The connection is made. The screen now shows the
 <strong>STATUS</strong> and <strong>LOG</strong> tabs for the connection.</p>
 
-<img class="center" src="../images/openconnect-006.png" alt="OpenConnect connected">
+<img class="center" src="../images/openconnect-009.png" alt="OpenConnect status">
 
 <h3>2.4. Test</h3>
 
@@ -547,6 +571,8 @@ not your <em>client</em> IP address.</p>
 <h3>2.5. Disconnect</h3>
 
 <p>Back in OpenConnect, tap the <strong>Disconnect</strong> button.</p>
+
+<img class="center" src="../images/openconnect-010.png" alt="Disconnect button">
 
 <h2>3. Troubleshoot Issues</h2>
 
@@ -563,6 +589,8 @@ is an exact match for the settings on your server.</p>
 
 <p>2. On the client, look at the <strong>LOG</strong> tab 
 for the connection.</p>
+
+<img class="center" src="../images/openconnect-011.png" alt="LOG tab">
 
 <p>3. On the Debian server, look for messages with these commands:</p>
 
