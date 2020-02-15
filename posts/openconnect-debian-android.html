@@ -1,0 +1,595 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>OpenConnect on Debian and Android</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158089470-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158089470-1');
+</script>
+<meta property="og:title" content="OpenConnect on Debian and Android">
+<meta property="og:description" content="How to install OpenConnect SSL VPN on a Debian server and an Android client">
+<meta property="og:image" content="https://www.lionlibr.com/images/social-media-opengraph.jpg">
+<meta property="og:url" content="https://www.lionlibr.com/posts/openconnect-debian-android.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@lionlibr">
+<meta name="twitter:creator" content="@lionlibr">
+<meta name="twitter:title" content="OpenConnect on Debian and Android">
+<meta name="twitter:description" content="How to install OpenConnect SSL VPN on a Debian server and an Android client">
+<meta name="twitter:image" content="https://www.lionlibr.com/images/social-media-opengraph.jpg">
+<link type="text/css" rel="stylesheet"  href="../css/style.css">
+</head>
+
+<body>
+
+<div id="header">
+<div class="content">
+	<p class="logo"><a href="/"><img src="../images/logo-36x36.png" alt="Logo"></a> 
+		<a href="/">LionLibr</a></p>
+</div>
+</div>
+
+<div id="main">
+<div class="content">
+
+	<h1>OpenConnect on Debian and Android</h1>
+	
+<p>OpenConnect sometimes gets through in environments where other
+protocols fail. It is a Secure Sockets Layer (SSL)
+virtual private network (VPN). This means that it uses
+the same Transport Layer Security (TLS) as is used by ordinary
+websites that support HTTPS. The consequence is that OpenConnect can often 
+pass by censors undetected.</p>
+
+<p>This tutorial will show you how to install OpenConnect SSL VPN 
+on a Debian server and an Android client.</p>
+
+<p>Debian is a long-established and highly respected Linux distribution. It is 
+popular with server administrators. New releases are issued every few years, 
+and at the time of writing the latest release is Debian 10.</p>
+
+<p>Android is the most popular mobile operating system in the world, 
+running on around five out of every six mobile devices.</p>
+
+<img src="../images/social-media-001.jpg" alt="Social media">
+
+<h2>1. Set Up Server</h2>
+
+<p>Before you begin, you&rsquo;ll need to acquire a domain name 
+and a server.
+This tutorial assumes you start with a newly created virtual private server 
+(VPS).
+The domain name used in the examples is <code>example.com</code> 
+with a sample hostname of <code>europe.example.com</code>.</p>
+
+<h3>1.1. SSH as Root</h3>
+
+<p>Log in to your server using a tool such as PuTTY, XSHELL, or PowerShell 
+(if you use Windows on your workstation), or the SSH command in a terminal 
+emulator (if you use Linux or Mac on your workstation).</p>
+
+<p>If your VPS provider sent you a root password by email, then 
+log in as root and change the root password to something only you know:</p>
+
+<p class="terminal">passwd root</p>
+
+<p>If you do not know the root password, then SSH in as a non-root user, and 
+set the root password to something you do know:</p>
+
+<p class="terminal">sudo passwd root</p>
+
+<p>Then switch to the root user:</p>
+
+<p class="terminal">su -</p>
+
+<p>For the rest of this tutorial, we assume you are logged in as root.</p>
+
+<h3>1.2. Update Your Server</h3>
+
+<p>Get your entire system up to date by issuing these commands as root:</p>
+
+<p class="terminal">apt update<br>
+<br>
+apt dist-upgrade<br>
+<br>
+apt autoremove</p>
+
+<h3>1.3. Implement BBR Congestion Control</h3>
+
+<p>Bottleneck Bandwidth and Roundtrip propagation time (BBR) is a congestion 
+control algorithm for Transmission Control Protocol (TCP). It aims to achieve 
+higher bandwidths and lower latencies.</p>
+
+<p>Edit your Linux system control parameters file, 
+<code>/etc/sysctl.conf</code>, to specify the BBR congestion control algorithm. 
+You can use any command-line editor for this. For example, if your favorite 
+editor is the <code>vi</code> editor:</p>
+
+<p class="terminal">vi /etc/sysctl.conf</p>
+
+<p>Alternatively, if your favorite editor is the <code>nano</code> editor:</p>
+
+<p class="terminal">nano /etc/sysctl.conf</p>
+
+<p>Add two lines at the end of the current file:</p>
+
+<p class="terminal">net.core.default_qdisc=fq<br>
+net.ipv4.tcp_congestion_control=bbr</p>
+
+<p>Write the file to disk, and quit the editor. Activate this change by issuing 
+the command:</p>
+
+<p class="terminal">sysctl -p</p>
+
+<h3>1.4. Install Firewall</h3>
+
+<p>Hackers repeatedly attempt to brute-force their way into servers
+that leave their SSH port open. Therefore we will protect our server
+with a firewall.</p>
+
+<p>Install the <code>nftables</code> firewall package:</p>
+
+<p class="terminal">apt install nftables</p>
+
+<p>Specify that you want to start <code>nftables</code> after every reboot, 
+and start it now:</p>
+
+<p class="terminal">systemctl enable nftables<br>
+<br>
+systemctl start nftables</p>
+
+<h3>1.5. Configure Firewall</h3>
+
+<p>List the current <code>nftables</code> rules:</p>
+
+<p class="terminal">nft list ruleset</p>
+
+<p>You should see a <code>table</code> for <code>inet filter</code>, plus a 
+<code>chain</code> within it for each of <code>input</code>, 
+<code>forward</code>, and <code>output</code>.
+
+<pre>
+table inet filter {
+	chain input {
+		type filter hook input priority 0; policy accept;
+	}
+
+	chain forward {
+		type filter hook forward priority 0; policy accept;
+	}
+
+	chain output {
+		type filter hook output priority 0; policy accept;
+	}
+}
+</pre>
+
+<p>If this table and its chains do <em>not</em> exist, then create them now:</p>
+
+<p class="terminal">nft add table inet filter<br>
+<br>
+nft add chain inet filter input { type filter hook input priority 0 \; policy accept\; }<br>
+<br>
+nft add chain inet filter forward { type filter hook forward priority 0 \; policy accept\; }<br>
+<br>
+nft add chain inet filter output { type filter hook output priority 0 \; policy accept\; }</p>
+
+<p>On the other hand, if these rules <em>do</em> already exist, 
+then simply carry on as follows.</p>
+
+<p>Add a rule to accept all related and established traffic:</p>
+
+<p class="terminal">nft add rule inet filter input ct state related,established counter accept</p>
+
+<p>Add a rule to accept all loopback interface traffic:</p>
+
+<p class="terminal">nft add rule inet filter input iif lo counter accept</p>
+
+<p>For the next rule, you need to know your workstation&rsquo;s 
+Internet Protocol (IP) address. If you do not know your IP address, you can 
+find it out by opening a browser and visiting 
+<a href="https://www.ipip.net" target="_blank">https://www.ipip.net</a> or
+<a href="https://whatismyipaddress.com" target="_blank">https://whatismyipaddress.com</a>.</p>
+
+<p>Let&rsquo;s assume your workstation&rsquo;s IP address is 
+<code>11.22.33.44</code>. If that is relatively fixed, whitelist your 
+IP address for access to port <code>22</code>, 
+which is the port you use for SSH:</p>
+
+<p class="terminal">nft add rule inet filter input tcp dport 22 ip saddr 11.22.33.44/32 counter accept</p>
+
+<p>Alternatively, you can open port <code>22</code> for a range 
+of IP addresses. For example, if your ISP allocates addresses in the range 
+<code>11.22.0.0</code> through <code>11.22.255.255</code>, you could open 
+port <code>22</code> for the entire range like this:</p>
+
+<p class="terminal">nft add rule inet filter input tcp dport 22 ip saddr 11.22.0.0/16 counter accept</p>
+
+<p>Do not open port <code>22</code> for the entire world.</p>
+
+<p>We will use port <code>80/tcp</code> for Let&rsquo;s Encrypt 
+and ports <code>443/tcp</code> and <code>443/udp</code> for OpenConnect, 
+so open them too:</p>
+
+<p class="terminal">nft add rule inet filter input tcp dport 80 counter accept<br>
+<br>
+nft add rule inet filter input tcp dport 443 counter accept<br>
+<br>
+nft add rule inet filter input udp dport 443 counter accept</p>
+
+<p>Check that the rules now look as expected:</p>
+
+<p class="terminal">nft list ruleset</p>
+
+<p>To persist these changes across reboots, save your rules to 
+<code>/etc/nftables.conf</code>:</p>
+
+<p class="terminal">nft list ruleset > /etc/nftables.conf</p>
+
+<p>Now we are going to change the default policy to drop all other input.</p>
+
+<p>Edit the <code>nftables</code> configuration file in your preferred
+editor. For example, if your preferred editor is the <code>vi</code> 
+editor:</p>
+
+<p class="terminal">vi /etc/nftables.conf</p>
+
+<p>Alternatively, if your preferred editor is the <code>nano</code> 
+editor:</p>
+
+<p class="terminal">nano /etc/nftables.conf</p>
+
+<p>Change the policy from <code>accept</code> to <code>drop</code>:</p>
+
+<pre>
+chain input { 
+        type filter hook input priority 0; policy drop; 
+</pre>
+
+<p>Restart <code>nftables</code> with your new configuration:</p>
+
+<p class="terminal">systemctl restart nftables</p>
+
+<p>Note: Some cloud providers require you also to open your
+server&rsquo;s &ldquo;Security Group.&rdquo;</p>
+
+<h3>1.6. Obtain Let&rsquo;s Encrypt SSL Certificate</h3>
+
+<p>The Let&rsquo;s Encrypt project offers free SSL certificates.
+Before you apply for your SSL certificate, you need to check that your
+hostname DNS records have propagated, so that the hostname
+points to your server IP address:</p>
+
+<p class="terminal">apt install dnsutils<br>
+<br>
+nslookup europe.example.com 1.1.1.1</p>
+
+<p>Wait until this command returns your server IP address.</p>
+
+<p>Install the Let&rsquo;s Encrypt client, Certbot:</p>
+
+<p class="terminal">apt install certbot</p>
+
+<p>Obtain a Let&rsquo;s Encrypt SSL certificate and key:</p>
+
+<p class="terminal">certbot certonly --standalone</p>
+
+<p>Respond to the <code>certbot</code> prompts:</p>
+
+<ol>
+<li>Enter your email address</li>
+<li>Enter <strong>a</strong> for agree</li>
+<li>Enter <strong>y</strong> or <strong>n</strong> to share your email
+address</li>
+<li>Type in the hostname (<code>europe.example.com</code> in our example) 
+for which you require a certificate</li>
+</ol>
+
+<p>You should see a success message with wording such as
+<code>Congratulations! Your certificate and chain have been saved</code>.</p>
+
+<p>Let&rsquo;s Encrypt SSL certificates are valid for 90 days.
+Set everything up for automatic renewal every 90 days:</p>
+
+<p class="terminal">certbot renew --dry-run</p>
+
+<h3>1.7. Install OpenConnect</h3>
+
+<p>Install OpenConnect from the Debian repositories.
+We do not need the Network Manager graphical user interface (GUI)
+for OpenConnect &mdash; just the OpenConnect server package:</p>
+
+<p class="terminal">apt install ocserv</p>
+
+<h3>1.8. Create Passwords</h3>
+
+<p>OpenConnect comes with a utility, <code>ocpasswd</code>,
+to create passwords for your users.</p>
+
+<p>Let&rsquo;s suppose you have three users named
+Alice, Bob, and Carol. We will store their passwords in the file
+<code>/etc/ocserv/ocpasswd</code>.</p>
+
+<p>Issue the following commands in turn.
+As you issue each one, you will be prompted to enter and confirm a password
+for each new user.</p>
+
+<p class="terminal">ocpasswd -c /etc/ocserv/ocpasswd alice</p>
+
+<p class="terminal">ocpasswd -c /etc/ocserv/ocpasswd bob</p>
+
+<p class="terminal">ocpasswd -c /etc/ocserv/ocpasswd carol</p>
+
+<p>The three usernames and their respective password hashes are stored in
+<code>/etc/ocserv/ocpasswd</code>.</p>
+
+<h3>1.9. Configure OpenConnect</h3>
+
+<p>Now we come to the major coniguration of OpenConnect.
+Edit the configuration file.
+If your preferred editor is the <code>vi</code> editor:</p>
+
+<p class="terminal">vi /etc/ocserv/ocserv.conf</p>
+
+<p>Alternatively, if your preferred editor is the <code>nano</code> editor:</p>
+
+<p class="terminal">nano /etc/ocserv/ocserv.conf</p>
+
+<p>Comment out the line for pluggable authentication module (pam)
+by inserting a hash sign (<code>#</code>)at the start of the line:</p>
+
+<p class="terminal">#auth = "pam[gid-min=1000]"</p>
+
+<p>Specify that we will use the password file for authentication
+by inserting a line:</p>
+
+<p class="terminal">auth = "plain[passwd=/etc/ocserv/ocpasswd]"</p>
+
+<p>Further down, give the actual location of the SSL certificate and key.
+We continue to give examples for <code>europe.example.com</code>,
+which you will have to change to match your actual hostname.</p>
+
+<p class="terminal">server-cert = /etc/letsencrypt/live/europe.example.com/fullchain.pem<br>
+server-key = /etc/letsencrypt/live/europe.example.com/privkey.pem</p>
+
+<p>Comment out the CA certificate line:</p>
+
+<p class="terminal">#ca-cert = /etc/ssl/certs/ssl-cert-snakeoil.pem</p>
+
+<p>Specify the private IP address range <code>10.10.0.0/24</code> 
+for our VPN:</p>
+
+<p class="terminal">ipv4-network = 10.10.0.0</p>
+
+<p>Optionally change the public nameservers we will use, and specify that 
+all nameserver traffic should be tunneled through to the server:</p>
+
+<p class="terminal">tunnel-all-dns = true</p>
+
+<p class="terminal">#dns = 8.8.8.8<br>
+#dns = 8.8.4.4<br>
+dns = 1.1.1.1<br>
+dns = 1.0.0.1</p>
+
+<p>Comment out all the <code>route</code> commands
+by inserting a hash sign (<code>#</code>) at the start of these lines:</p>
+
+<p class="terminal">#route = 10.0.0.0/8<br>
+#route = 172.16.0.0/12<br>
+#route = 192.168.0.0/16</p>
+
+<p>If you prefer a configuration file with all the blank lines and 
+explanatory commented lines removed, it will look like this:</p>
+
+<pre>
+auth = "plain[passwd=/etc/ocserv/ocpasswd]"
+tcp-port = 443
+udp-port = 443
+run-as-user = nobody
+run-as-group = daemon
+socket-file = /run/ocserv.socket
+server-cert = /etc/letsencrypt/live/europe.example.com/fullchain.pem
+server-key = /etc/letsencrypt/live/europe.example.com/privkey.pem
+isolate-workers = true
+max-clients = 128
+max-same-clients = 2
+server-stats-reset-time = 604800
+keepalive = 300
+dpd = 60
+mobile-dpd = 300
+switch-to-tcp-timeout = 30
+try-mtu-discovery = false
+cert-user-oid = 0.9.2342.19200300.100.1.1
+compression = true
+no-compress-limit = 256
+tls-priorities = "NORMAL:%SERVER_PRECEDENCE:%COMPAT:-RSA:-VERS-SSL3.0:-ARCFOUR-128"
+auth-timeout = 240
+idle-timeout = 1200
+mobile-idle-timeout = 1800
+min-reauth-time = 3
+max-ban-score = 50
+ban-reset-time = 300
+cookie-timeout = 300
+deny-roaming = false
+rekey-time = 172800
+rekey-method = ssl
+use-occtl = true
+pid-file = /run/ocserv.pid
+device = vpns
+predictable-ips = true
+default-domain = example.com
+ipv4-network = 10.10.0.0
+ipv4-netmask = 255.255.255.0
+tunnel-all-dns = true
+dns = 1.1.1.1
+dns = 1.0.0.1
+ping-leases = false
+cisco-client-compat = true
+dtls-legacy = true
+</pre>
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>1.10. Reconfigure Kernel</h3>
+
+<p>We will make one more change to the Linux kernel configuration
+to enable packet forwarding. Again, we will do this by editing
+<code>/etc/sysctl.conf</code>.
+If your favorite editor is the <code>vi</code> editor:</p>
+
+<p class="terminal">vi /etc/sysctl.conf</p>
+
+<p>Alternatively, if your favorite editor is the <code>nano</code> editor:</p>
+
+<p class="terminal">nano /etc/sysctl.conf</p>
+
+<p>Uncomment this line by removing the hash sign (<code>#</code>)
+at the start of the line:</p>
+
+<p class="terminal">net.ipv4.ip_forward=1</p>
+
+<p>Write the file to disk, and quit the editor. Activate this change by issuing 
+the command:</p>
+
+<p class="terminal">sysctl -p</p>
+
+<h3>1.11. Configure Masquerading</h3>
+
+<p>When a packet arrives at the server, we want to forward it to its
+destination as though it originated from the server and not the client.
+This is called masquerading.</p>
+
+<p>Add a firewall table to perform this Network Address Translation (NAT):</p>
+
+<p class="terminal">nft add table nat</p>
+
+<p>Add the chains and rules to perform outbound IP address masquerading:</p>
+
+<p class="terminal">nft add chain nat prerouting { type nat hook prerouting priority 0 \; }<br>
+<br>
+nft add chain nat postrouting { type nat hook postrouting priority 100 \; }<br>
+<br>
+nft add rule nat postrouting ip saddr 10.10.0.0/24 oif eth0 masquerade</p>
+
+<p>Save the revised firewall rules as they now stand:</p>
+
+<p class="terminal">nft list ruleset > /etc/nftables.conf</p>
+
+<h3>1.12. Restart OpenConnect</h3>
+
+<p class="terminal">systemctl stop ocserv<br>
+<br>
+systemctl start ocserv</p>
+
+<h3>1.13. Exit SSH Session</h3>
+
+<p>Your work on the server is done for now. Exit your SSH session by typing 
+the command:</p>
+
+<p class="terminal">exit</p>
+
+<h2>2. Set Up Client</h2>
+
+<p>Now work on your Android phone or tablet.</p>
+
+<h3>2.1. Install OpenConnect</h3>
+
+<p>Download and install OpenConnect for Android from the Google Play Store or
+<a href="https://apkpure.com/openconnect/app.openconnect" target="_blank">ApkPure</a>.</p>
+
+<h3>2.2. Configure OpenConnect</h3>
+
+<p>Open the OpenConnect app. Click the plus sign to add a profile.</p>
+
+<img class="center" src="../images/openconnect-001.png" alt="OpenConnect initial screen">
+
+<p>Insert the hostname or IP address for your server. 
+Tap <strong>OK</strong>.</p>
+
+<img class="center" src="../images/openconnect-002.png" alt="OpenConnect hostname">
+
+<p>Give the profile a name.</p>
+
+<img class="center" src="../images/openconnect-003.png" alt="OpenConnect profile name">
+
+<h3>2.3. Connect</h3>
+
+<p>Select and long press the profile to connect. Tap <strong>OK</strong>.</p>
+
+<img class="center" src="../images/openconnect-004.png" alt="OpenConnect ok to connect">
+
+<p>Enter your username and tap <strong>OK</strong>.
+On the next screen, enter your password and tap <strong>OK</strong>.</p>
+
+<img class="center" src="../images/openconnect-005.png" alt="OpenConnect enter username">
+
+<p>The connection is made. The screen now shows the
+<strong>STATUS</strong> and <strong>LOG</strong> tabs for the connection.</p>
+
+<img class="center" src="../images/openconnect-006.png" alt="OpenConnect connected">
+
+<h3>2.4. Test</h3>
+
+<p>End-to-end test your entire configuration (server and client)
+by opening a browser on your Android device
+and visiting 
+<a href="https://ipchicken.com" target="_blank">https://ipchicken.com</a>.</p>
+
+<p>You should see your <em>server</em> IP address, 
+not your <em>client</em> IP address.</p>
+
+<h3>2.5. Disconnect</h3>
+
+<p>Back in OpenConnect, tap the <strong>Disconnect</strong> button.</p>
+
+<h2>3. Troubleshoot Issues</h2>
+
+<p>You can find documentation for OpenConnect on  
+<a href="http://ocserv.gitlab.io/www/manual.html" target="_blank">Gitlab</a>.
+The official site for OpenConnect is
+<a href="https://www.infradead.org/openconnect/" target="_blank">https://www.infradead.org/openconnect/</a>.</p>
+
+<p>If you have any problems, here are some steps you can take 
+to troubleshoot.</p>
+
+<p>1. Double-check that your client configuration
+is an exact match for the settings on your server.</p>
+
+<p>2. On the client, look at the <strong>LOG</strong> tab 
+for the connection.</p>
+
+<p>3. On the Debian server, look for messages with these commands:</p>
+
+<p class="terminal">systemctl status ocserv<br>
+<br>
+journalctl -u ocserv</p>
+
+<p>4. If you still have an issue, consult the OpenConnect help page at
+<a href="https://www.infradead.org/openconnect/mail.html" target="_blank">https://www.infradead.org/openconnect/mail.html</a>
+for further support.</p>
+
+</div>
+</div>
+
+<div id="footer">
+<div class="content">
+	<p class="logo"><a href="/">LionLibr </a>
+	<a href="https://twitter.com/lionlibr"><img src="../images/twitter-orange.png" 
+		alt="Twitter"></a> 
+	<a href="https://t.me/lionlibr"><img src="../images/telegram-orange.png" 
+		alt="Telegram"></a> 
+	<a href="https://github.com/lionlibr"><img src="../images/github-orange.png" 
+		alt="GitHub"></a>
+	</p>
+</div>
+</div>
+
+</body>
+
+</html>
