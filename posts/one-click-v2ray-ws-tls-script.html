@@ -1,0 +1,470 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>One-Click V2Ray+WS+TLS Script</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158089470-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158089470-1');
+</script>
+<meta property="og:title" content="One-Click V2Ray+WS+TLS Script">
+<meta property="og:description" content="How to install V2Ray+WS+TLS on an Ubuntu server and an Android client using the Wulabing script">
+<meta property="og:image" content="https://www.lionlibr.com/images/wulabing-opengraph.jpg">
+<meta property="og:url" content="https://www.lionlibr.com/posts/one-click-v2ray-ws-tls-script.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@lionlibr">
+<meta name="twitter:creator" content="@lionlibr">
+<meta name="twitter:title" content="One-Click V2Ray+WS+TLS Script">
+<meta name="twitter:description" content="How to install V2Ray+WS+TLS on an Ubuntu server and an Android client using the Wulabing script">
+<meta name="twitter:image" content="https://www.lionlibr.com/images/wulabing-opengraph.jpg">
+<link type="text/css" rel="stylesheet"  href="../css/style.css">
+</head>
+
+<body>
+
+<div id="header">
+<div class="content">
+	<p class="logo"><a href="/"><img src="../images/logo-36x36.png" alt="Logo"></a> 
+		<a href="/">LionLibr</a></p>
+</div>
+</div>
+
+<div id="main">
+<div class="content">
+
+	<h1>One-Click V2Ray+WS+TLS Script</h1>
+	
+<p>V2Ray is an open-source network proxy tool that can help you better enjoy 
+the Internet. It can be used on Windows, macOS, Android, iOS, and Linux 
+clients. V2Ray offers many sophisticated features. However, it can be difficult 
+for beginners to configure.</p>
+
+<p>This tutorial introduces a one-click installation script that does much of 
+the work of V2Ray server configuration for you.</p>
+
+<p>Even though this tutorial is aimed at beginners, the developer still 
+recommends that you make some effort to understand the principles of V2Ray. 
+Documentation is available in Chinese, English, Russian, Korean, Farsi, and 
+Vietnamese at <a href="https://v2ray.com" target="_blank">https://v2ray.com</a>. 
+You should also be willing to learn at least the basics of managing 
+a Linux server.</p>
+
+<p>At the time of writing, the script supports Debian 9+, Ubuntu 18.04+, and 
+CentOS 7. In this tutorial we will use an Ubuntu 18.04 server. 
+The client is an Android device.</p>
+
+<h2>1. Get Domain Name</h2>
+
+<p>You will need to acquire a domain name before you run this script. 
+If you want to give a good impression, remember that 
+paid domain names look more professional than free ones. 
+If you still want a free domain name, you can get one from 
+<a href="https://www.freenom.com" target="_blank">https://www.freenom.com</a>. 
+When you create your domain, they will check that the street address you give 
+is consistent with your workstation&rsquo;s IP address.</p>
+
+<p>For the rest of this tutorial, we use the example domain name
+of <code>lizi.gq</code>.</p>
+
+<h2>2. Get VPS</h2>
+
+<p>You will also need a virtual private server (VPS). There are hundreds of companies that provide VPSs. Here&rsquo;s a few of the well-known ones:</p>
+
+<ul>
+<li><a href="https://cloud.google.com" target="_blank">https://cloud.google.com</a></li>
+<li><a href="https://aws.amazon.com" target="_blank">https://aws.amazon.com</a></li>
+<li><a href="https://www.linode.com" target="_blank">https://www.linode.com</a></li>
+</ul>
+
+<p>Of course, you can choose a different provider if you like.</p>
+
+<h2>3. Create DNS Record</h2>
+
+<p>On the Internet, people refer to websites by hostnames. 
+A hostname is effectively a subdivision of your domain name. 
+For example, <code>a.example.com</code> and <code>b.example.com</code> are both
+hostnames within the same domain name of <code>example.com</code>.
+Hostnames are also referred to as <em>fully qualified domain names</em>
+(FQDN).</p>
+
+<p>The Internet itself directs traffic between Internet Protocol (IP) 
+addresses. This necessitates the Domain Name System (DNS), which maps 
+hostnames to server IP addresses. 
+The most important DNS record is called an DNS <code>A</code> record.</p>
+
+<p>At a minimum, you will need to create one DNS <code>A</code> record,
+connecting your hostname and your server. Unless you are using a separate
+DNS service, you should create the DNS <code>A</code> record
+at your domain name registrar &mdash; either 
+<a href="https://www.freenom.com" target="_blank">https://www.freenom.com</a>
+or some other domain name registrar.</p>
+
+<p>In the example in this tutorial, we created one DNS <code>A</code> record.
+It mapped the subdomain <code>a</code> of the domain <code>lizi.gq</code>
+&mdash; in other words, the <code>a.lizi.gq</code> hostname &mdash;
+to our VPS&rsquo;s IP address.</p>
+
+<img src="../images/freenom-001.png" alt="Freenom DNS A record for hostname">
+
+<h2>4. Terminal Emulator</h2>
+
+<p>To log in to your server, you need a terminal emulator that supports 
+Secure Shell (SSH) sessions.</p>
+
+<p>If you are using Linux or macOS computer as your workstation, you already have a built-in terminal emulator that you can use to SSH into your server.</p>
+
+<p>If you are using Windows as your workstation, install PuTTY from
+<a href="https://www.chiark.greenend.org.uk/~sgtatham/putty" target="blank">https://www.chiark.greenend.org.uk/~sgtatham/putty</a>
+or XSHELL6 from 
+<a href="https://www.netsarang.com/en/xshell" target="blank">https://www.netsarang.com/en/xshell</a>.</p>
+
+<p>If you are using Android on your phone as your workstation, install JuiceSSH from Google Play Store or <a href="https://apkpure.com/juicessh-ssh-client/com.sonelli.juicessh" target="blank">ApkPure</a>.</p>
+
+<p>On iPad or iPhone, install an SSH client such as Termius.</p>
+
+<h2>5. SSH into Server</h2>
+
+<p>Some VPS providers give you root access to your server right away. 
+Others give you a non-root user id and, if you want root access, 
+you must log in as the non-root user and then switch users.</p>
+
+<p>Suppose first you are logged in as root. Some providers force you to 
+change your password immediately when you log in for the first time. 
+If you are logged in as root and have not been forced to change 
+the root password, then change it anyway. 
+Type, or copy and paste, the command below into your terminal emulator:</p>
+
+<p class="terminal">passwd root</p>
+
+<p>The second possibility is that you are logged in as a non-root user.
+Set the root password and switch to root as follows. 
+Type or copy and paste each of the two commands below  
+into your terminal emulator.</p>
+
+<p class="terminal">sudo passwd root<br>
+<br>
+su -</p>
+
+<h2>6. Prepare VPS</h2>
+
+<p>If you&rsquo;ve got this far, you should now be logged in as root.</p>
+
+<p>We have a little preparation to do before running the one-click 
+installation script. Type or copy and paste each of these commands in turn 
+into your terminal emulator.</p>
+
+<p>Get your existing server software up to date:</p>
+
+<p class="terminal">apt update && apt upgrade -y</p>
+
+<p>Also remove any redundant packages:</p>
+
+<p class="terminal">apt autoremove</p>
+
+<p>Install a package that will ban anyone who repeatedly tries to log in using 
+an incorrect password:</p>
+
+<p class="terminal">apt install fail2ban</p>
+
+<p>Install a package for getting the one-click script from the web:</p>
+
+<p class="terminal">apt install wget</p>
+
+<p>V2Ray needs accurate times on both server and client. Display the 
+system date, time, timezone, and year with the command:</p>
+
+<p class="terminal">date</p>
+
+<p>Note that many servers use Coordinated Universal Time (UTC) as the 
+time zone. </p>
+
+<p>If the time is not correct, then set it now. For example, to set it to 
+3:45 p.m. in the server clock&rsquo;s timezone, 
+use the <code>date</code> command again like this:</p>
+
+<p class="terminal">date +%T -s "15:45:00"</p>
+
+<h2>7. The One Click</h2>
+
+<p>Now we come to the one-click script. Copy and paste the following command from this tutorial into your terminal emulator. This is all one long command, so when you select and copy, make sure you select all of the command:</p>
+
+<p class="terminal">wget -N --no-check-certificate -q -O install.sh "https://raw.githubusercontent.com/wulabing/V2Ray_ws-tls_bash_onekey/master/install.sh" && chmod +x install.sh && bash install.sh</p>
+
+<p>Here is a demonstration of how this might appear in your 
+terminal emulator. Remember it is all one command, even though
+it spans several lines of the display.</p>
+	
+<img src="../images/wulabing-001.png" alt="The one-click script command">
+
+<h2>8. Respond to Prompts</h2>
+
+<p>The script displays a menu offering the following options:</p>
+
+<p class="terminal">—————————————— 安装向导 ——————————————<br>
+0.  升级 脚本<br>
+1.  安装 V2Ray (Nginx+ws+tls)<br>
+2.  安装 V2Ray (http/2)<br>
+3.  升级 V2Ray core<br>
+—————————————— 配置变更 ——————————————<br>
+4.  变更 UUID<br>
+5.  变更 alterid<br>
+6.  变更 port<br>
+7.  变更 TLS 版本(仅ws+tls有效)<br>
+—————————————— 查看信息 ——————————————<br>
+8.  查看 实时访问日志<br>
+9.  查看 实时错误日志<br>
+10. 查看 V2Ray 配置信息<br>
+—————————————— 其他选项 ——————————————<br>
+11. 安装 4合1 bbr 锐速安装脚本<br>
+12. 安装 MTproxy(支持TLS混淆)<br>
+13. 证书 有效期更新<br>
+14. 卸载 V2Ray<br>
+15. 更新 证书crontab计划任务<br>
+16. 退出</p>
+
+<p>In English, these options would read:</p>
+
+<p class="terminal">—————————————— Installation Wizard ——————————————<br>
+0. Upgrade script<br>
+1. Install V2Ray (Nginx+WS+TLS)<br>
+2. Install V2Ray (HTTP/2)<br>
+3. Upgrade V2Ray core<br>
+—————————————— Configuration Change —————————————<br>
+4. Change UUID<br>
+5. Change alterid<br>
+6. Change port<br>
+7. Change TLS version (only WS+TLS is valid)<br>
+—————————————— View information —————————————————<br>
+8. View real-time access log<br>
+9. View real-time error log<br>
+10. View V2Ray configuration information<br>
+—————————————— Other options ————————————————————<br>
+11. Install 4-in-1 BBR quick install script<br>
+12. Install MTproxy (supports TLS obfuscation)<br>
+13. Certificate validity period update<br>
+14. Uninstall V2Ray<br>
+15. Update certificate crontab scheduled task<br>
+16. Exit</p>
+
+<p>For a beginner on a new server, choose option <code>1</code> to install 
+V2Ray with an Nginx frontend and WS+TLS protocol.</p>
+
+<p>The next question asks you to confirm that the server time clock is 
+accurate within plus or minus 3 minutes.
+It uses Beijing time (CST).</p>
+
+<p class="terminal">请确认时间是否准确,误差范围±3分钟(Y/N)<br>
+Please confirm that the time is accurate; the error range is ±3 minutes (Y/N)</p>
+
+<p>Assuming it is correct, put <code>y</code> for Yes and press 
+<strong>Enter</strong>, like this:</p>
+
+<img src="../images/wulabing-002.png" alt="Is the time (CST) correct?">
+
+<p>Now you are asked to enter your fully qualified domain name,
+also known as your hostname. 
+The example given in the prompt is <code>www.wulabing.com</code>.</p>
+
+<p class="terminal">请输入你的域名信息(eg:www.wulabing.com):<br>
+Please enter your domain information (e.g. www.wulabing.com):</p>
+
+<p>Enter your FQDN, which in our example is <code>a.lizi.gq</code>, 
+and press <strong>Enter</strong>.</p>
+
+<img src="../images/wulabing-003.png" alt="Enter fully qualified domain name">
+
+<p>When we prepared this tutorial, the DNS <code>A</code> record had not
+yet had time to propagate. This caused an error, as shown 
+in the next screenshot. 
+The DNS record on localhost did not match the IP address of the server.</p>
+
+<p class="terminal">请确保域名添加了正确的 A 记录，否则将无法正常使用 V2ray<br>
+域名dns解析IP 与 本机IP 不匹配 是否继续安装？<br>
+Please make sure the domain name has the correct A record, otherwise V2Ray 
+will not work properly.<br>
+The domain name DNS resolution IP does not match the local IP.
+Do you want to continue the installation?</p>
+
+<p>If this happens to you, and if you are confident that the DNS
+record will be eventually be correct, you can type <code>y</code>
+for Yes, and press <strong>Enter</strong>.</p>
+
+<img src="../images/wulabing-004.png" alt="DNS and IP inconsistency">
+
+<p>The next question asks on which port number your server will accept
+incoming connections.</p>
+
+<p class="terminal">请输入连接端口（default:443）:<br>
+Please enter the connection port (default 443):</p>
+
+<p>It is strongly recommended that you use the default port <code>443</code>
+as the connection port, since this is consistent with HTTPS port usage.</p>
+
+<img src="../images/wulabing-005.png" alt="Port number defaults to 443">
+
+<p>Now you are asked how many alternative IDs you want to use.
+This parameter is mainly used to enhance anti-detection capabilities. 
+Theoretically, the larger the <code>alterId</code>, the better, 
+but the larger the value the more memory it uses on the server.</p>
+
+<p class="terminal">请输入alterID（default:2 仅允许填数字）:<br>
+Please enter alterID (default 2, must be numeric):</p>
+
+<p>It is recommended that you go with the suggested default of 2.</p>
+
+<img src="../images/wulabing-006.png" alt="Alternative IDs defaults to 2">
+
+<p>The script now goes ahead and builds the latest version of V2Ray
+direct from the source. This can take 10 minutes or so,
+depending on your server.</p>
+
+<p class="terminal">请选择支持的 TLS 版本（default:3）:<br>
+请注意,如果你使用 Quantaumlt X / 路由器 / 旧版 Shadowrocket / 低于 4.18.1 版本的 V2ray core 请选择 兼容模式<br>
+1: TLS1.1 TLS1.2 and TLS1.3（兼容模式）<br>
+2: TLS1.2 and TLS1.3 (兼容模式)<br>
+3: TLS1.3 only<br>
+<br>
+Please select a supported TLS version (default 3):<br>
+Please note that if you use Quantaumlt X / Router / Legacy Shadowrocket / V2ray core lower than 4.18.1 please select compatibility mode<br>
+1: TLS1.1 TLS1.2 and TLS1.3 (compatibility mode)<br>
+2: TLS1.2 and TLS1.3 (compatibility mode)<br>
+3: TLS1.3 only</p>
+
+<p>TLS version 1.3 is the newest, but it is not supported by every possible client.
+To allow for a broader range of client devices, we will choose
+option <code>2</code>. Press <strong>Enter</strong>.</p>
+
+<img src="../images/wulabing-007.png" alt="Allow for TLS 1.2 and TLS 1.3">
+
+<p>At the conclusion of the script, the 
+URL import link (URL导入链接) is displayed.
+It begins with the characters <code>vmess://</code> as shown in the
+screenshot below displayed in red.</p>
+
+<img src="../images/wulabing-008.png" alt="Completion display with vmess URL">
+
+<p>If you lose the URL import link, you can redisplay it with the command:</p>
+
+<p class="terminal">cat ~/v2ray_info.inf</p>
+
+<img src="../images/wulabing-009.png" alt="Redisplay vmess URL">
+
+<p>Copy this entire URL beginning from <code>vmess://</code>
+and going to the end (<code>fQo=</code> in our example) to your clipboard.
+We will import it into the client in a moment.</p>
+
+<p>Meanwhile, notice that the script has created an Nginx website
+on your server in the directory <code>/home/wwwroot/3DCEList</code>. 
+If you visit your host in a browser
+(<code>https://a.lizi.gq</code> in our example)
+you will see this website.</p>
+
+<img src="../images/wulabing-010.png" alt="Generated website">
+
+<h2>9. Install V2Ray Client</h2>
+
+<p>V2Ray needs accurate times on both server and client, 
+so make sure the system time on your client device is correct.</p>
+
+<p>Our screenshots come from using BifrostV on an Android device.
+Install BifrostV from Google Play Store or <a href="https://apkpure.com/bifrostv/com.github.dawndiy.bifrostv" target="_blank">ApkPure</a>.</p>
+
+<p>(Clients for other devices are listed at 
+<a href="https://v2ray.com/en/awesome/tools.html" target="_blank">https://v2ray.com/en/awesome/tools.html</a>.)</p>
+
+<p>In BifrostV, tap the plus sign 
+at the top right of the screen to add a new V2Ray server profile.
+Select <strong>Import</strong>. Select <strong>Import from URL</strong>. 
+Paste the URL from <code>vmess://</code> and going right to the very end 
+from your clipboard. Tap <strong>OK</strong>.</p>
+
+<img src="../images/wulabing-011.png" alt="Bifrostv import profile from URL">
+
+<p>The new V2Ray server profile appears in your profile list. 
+Tap the round button at the bottom right of your screen to connect.</p>
+
+<img src="../images/wulabing-012.png" alt="Imported profile">
+
+<p>Depending on which version of Android you are running, 
+you will get a message saying that BifrostV is attempting to create a 
+VPN connection.
+Check the box to say that you  trust this application,
+and tap <strong>OK</strong>.</p>
+
+<img src="../images/wulabing-013.png" alt="Attempt to connect">
+
+<p>After a few seconds, the button at the bottom right of your screen 
+turns a brighter color to indicate that you are now connected
+to that V2Ray server.</p>
+
+<img src="../images/wulabing-014.png" alt="Connected button turns bright">
+
+<h2>10. End-to-End Test</h2>
+
+<p>Open a browser and visit
+<a href="https://www.iplocation.net" target="_blank">https://www.iplocation.net</a>.</p>
+
+<p>You should see the location of your <em>server</em>, 
+not the location of your <em>client</em>.</p>
+
+<img src="../images/wulabing-015.png" alt="IP location is server location">
+
+
+<h2>11. Keep Your Server Up to Date</h2>
+
+<p>The script supports automatic generation of a Let&rsquo;s Encrypt SSL 
+certificate, which is valid for 90 days. In theory, the automatically 
+generated certificate supports automatic renewal. 
+At 3 a.m. every Sunday, Nginx will automatically restart to allow the 
+scheduled task of checking for renewal of the certificate. 
+During this period, clients cannot connect to the server. 
+The estimated duration of the maintenance outage is anything 
+from a few seconds to a few minutes.</p>
+
+<p>Keeping your server software up to date needs to be done manually. 
+Once a week or so, log on to your server and issue the command:</p>
+
+<p class="terminal">apt update && apt upgrade -y</p>
+
+<h2>12. Get Support</h2>
+
+<p>If you have a problem, SSH into your server to take a look at the logs.
+To view the V2Ray error log, enter the command:</p>
+
+<p class="terminal">tail /var/log/v2ray/error.log</p>
+
+<p>To view the Nginx error log, enter the command:</p>
+
+<p class="terminal">tail /etc/nginx/logs/error.log</p>
+
+<p>You can ask questions on the Telegram communication group at 
+<a href="https://t.me/wulabing_v2ray" target="_blank">https://t.me/wulabing_v2ray</a>.</p>
+
+<p>If you still have a problem, you can create an issue on 
+<a href="https://github.com/wulabing/V2Ray_ws-tls_bash_onekey/issues" target="_blank">https://github.com/wulabing/V2Ray_ws-tls_bash_onekey/issues</a>.</p>
+
+</div>
+</div>
+
+<div id="footer">
+<div class="content">
+	<p class="logo"><a href="/">LionLibr </a>
+	<a href="https://twitter.com/lionlibr"><img src="../images/twitter-orange.png" 
+		alt="Twitter"></a> 
+	<a href="https://t.me/lionlibr"><img src="../images/telegram-orange.png" 
+		alt="Telegram"></a> 
+	<a href="https://github.com/lionlibr"><img src="../images/github-orange.png" 
+		alt="GitHub"></a>
+	</p>
+</div>
+</div>
+
+</body>
+
+</html>

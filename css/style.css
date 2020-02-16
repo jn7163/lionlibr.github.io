@@ -77,7 +77,7 @@ h1 {
 h1.sitetitle {
 	color:#ff5722;
 }
-p,li {
+p,li, blockquote {
 	font-size:18px; 
 	line-height:150%;
 }
