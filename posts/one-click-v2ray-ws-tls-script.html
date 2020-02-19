@@ -284,10 +284,8 @@ and press <strong>Enter</strong>.</p>
 
 <img src="../images/wulabing-003.png" alt="Enter fully qualified domain name">
 
-<p>When we prepared this tutorial, the DNS <code>A</code> record had not
-yet had time to propagate. This caused an error, as shown 
-in the next screenshot. 
-The DNS record on localhost did not match the IP address of the server.</p>
+<p>If the DNS resolution does not match the IP address of the server,
+you will see a warning. It asks you if you want to proceed.</p>
 
 <p class="terminal">请确保域名添加了正确的 A 记录，否则将无法正常使用 V2ray<br>
 域名dns解析IP 与 本机IP 不匹配 是否继续安装？<br>
@@ -296,8 +294,8 @@ will not work properly.<br>
 The domain name DNS resolution IP does not match the local IP.
 Do you want to continue the installation?</p>
 
-<p>If this happens to you, and if you are confident that the DNS
-record will be eventually be correct, you can type <code>y</code>
+<p>If you are confident that the DNS resolution 
+will be eventually be correct, you can type <code>y</code>
 for Yes, and press <strong>Enter</strong>.</p>
 
 <img src="../images/wulabing-004.png" alt="DNS and IP inconsistency">
@@ -326,7 +324,7 @@ Please enter alterID (default 2, must be numeric):</p>
 <img src="../images/wulabing-006.png" alt="Alternative IDs defaults to 2">
 
 <p>The script now goes ahead and builds the latest version of V2Ray
-direct from the source. This can take 10 minutes or so,
+direct from the source. This takes the most time, 10 minutes or so,
 depending on your server.</p>
 
 <p class="terminal">请选择支持的 TLS 版本（default:3）:<br>
