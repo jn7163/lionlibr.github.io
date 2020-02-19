@@ -1,0 +1,234 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>Trojan-GFW on a Linux Client</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158089470-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158089470-1');
+</script>
+<meta property="og:title" content="Trojan-GFW on a Linux Client">
+<meta property="og:description" content="How to install Trojan-GFW on clients such as Debian, Ubuntu, CentOS, and Fedora">
+<meta property="og:image" content="https://www.lionlibr.com/images/linuxclient-opengraph.png">
+<meta property="og:url" content="trojan-gfw-linux-client.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@lionlibr">
+<meta name="twitter:creator" content="@lionlibr">
+<meta name="twitter:title" content="Trojan-GFW on a Linux Client">
+<meta name="twitter:description" content="How to install Trojan-GFW on clients such as Debian, Ubuntu, CentOS, and Fedora">
+<meta name="twitter:image" content="https://www.lionlibr.com/images/linuxclient-opengraph.png">
+<link type="text/css" rel="stylesheet"  href="../css/style.css">
+</head>
+
+<body>
+
+<div id="header">
+<div class="content">
+	<p class="logo"><a href="/"><img src="../images/logo-36x36.png" alt="Logo"></a> 
+		<a href="/">LionLibr</a></p>
+</div>
+</div>
+
+<div id="main">
+<div class="content">
+
+	<h1>Trojan-GFW on a Linux Client</h1>
+	
+<p>Trojan aims to help you explore the world outside 
+the Great Firewall (GFW) of China. 
+It tunnels your traffic over Transport Layer Security (TLS) 
+to avoid both active and passive detection 
+and Internet Service Provider (ISP) 
+Quality-of-Service (QoS) limitations.</p>
+
+<p>In this tutorial, you&rsquo;ll see how to install Trojan on a Linux client. 
+Examples would be Debian, Ubuntu, CentOS, and Fedora.
+This tutorial covers the client only.
+Other tutorials cover the server part of the process.</p>
+
+<h2>1. Obtain Server Information</h2>
+
+<p>No matter whether you, or somebody else, set up the Trojan-GFW server,
+you will need to obtain three pieces of information:</p>
+
+<ul>
+<li>The server hostname or IP address, for example,
+<code>nyc.trjn.tk</code></li>
+<li>The server port, which is commonly <code>443</code></li>
+<li>A password for the Trojan server, e.g. <code>MLQR4OVq</code></li>
+</ul>
+
+<img src="../images/linuxclient-000.png" 
+	alt="Trojan parameters on the server">
+
+<h2>2. Set Up Client</h2>
+
+<h3>2.1. Download Trojan for Linux</h3>
+
+<p>Open Firefox and visit the
+<a href="https://github.com/trojan-gfw/trojan/releases" target="_blank">releases</a>
+page for Trojan-GFW on Github.
+Determine the latest release.</p>
+
+<p>Download the latest release. For example, at the time of writing, it is named
+<a href="https://github.com/trojan-gfw/trojan/releases/download/v1.14.1/trojan-1.14.1-linux-amd64.tar.xz" target="_blank">trojan-1.14.1-linux-amd64.tar.xz</a>.</p>
+
+<img src="../images/linuxclient-001.png" 
+	alt="Linux client on Github">
+
+<p>Open a terminal emulator. Change into your <code>Downloads</code>
+directory:</p>
+
+<p class="terminal">cd Downloads</p>
+
+<p>Install the xz utilities. On Debian or Ubuntu the package is named 
+<code>xz-utils</code>:</p>
+
+<p class="terminal">sudo apt install xz-utils</p>
+
+<p>On CentOS or Fedora the package is named <code>xz</code>:</p>
+
+<p class="terminal">sudo yum install xz</p>
+
+<p>Extract the archive:</p>
+
+<p class="terminal">unxz trojan-1.14.1-linux-amd64.tar.xz<br>
+<br>
+tar -xf trojan-1.14.1-linux-amd64.tar</p>
+
+<img src="../images/linuxclient-002.png" 
+	alt="Extracting the Linux client on in a terminal emulator">
+
+<h3>2.2. Configure Trojan for Linux</h3>
+
+<p>Change into the extracted directory:</p>
+
+<p class="terminal">cd trojan</p>
+
+<p>Copy the sample Trojan client configuration file
+to the configuration file that will be used:</p>
+
+<p class="terminal">cp examples/client.json-example config.json</p>
+
+<p>Edit the configuration file:</p>
+
+<p class="terminal">vi config.json</p>
+
+<img src="../images/linuxclient-003.png" 
+	alt="Trojan-GFW configuration file on a Linux client">
+	
+<p>You will need to make these changes:</p>
+
+<ul>
+<li>Replace remote address <code>example.com</code> by your 
+actual server name, e.g. <code>nyc.trjn.tk</code></li>
+<li>Replace remote port <code>443</code> if necessary</li>
+<li>Replace <code>password1</code> by your actual password 
+e.g. <code>MLQR4OVq</code></li>
+<li>On Linux, you need to set SSL verify to <code>false</code></li>
+</ul>
+
+<img src="../images/linuxclient-004.png" 
+	alt="Trojan-GFW configuration file after changes">
+
+<p>Write the file to disk, and quit the editor.</p>
+
+<h3>2.3. Configure Firefox</h3>
+
+<p>Now configure Firefox to use Trojan, which is listening on 
+localhost port <code>1080</code>.</p>
+
+<ol>
+<li>From the hamburger menu select <strong>Options</strong>.</li>
+<li>Under Network Settings, select <strong>Settings</strong>.</li> 
+<li>Choose <strong>Manual proxy configuration</strong>.</li>
+<li>SOCKS Host <code>127.0.0.1</code>.</li>
+<li>Port <code>1080</code>.</li>
+<li>Select version <strong>SOCKS v5</strong>.</li>
+<li>Check<strong>Proxy DNS when using SOCKS v5</strong>.</li>
+<li>Click <strong>OK</strong>.</li>
+</ol>
+
+<img src="../images/firefox-000.png" 
+	alt="Firefox configured to use a proxy server">
+
+<h3>2.4. Connect</h3>
+
+<p>Run the Trojan executable with your configuration file:</p>
+
+<p class="terminal">./trojan<br>
+
+<h3>2.5. Test</h3>
+
+<p>End-to-end test your entire configuration (server and client)
+by opening Firefox on your Linux computer
+and visiting 
+<a href="https://ipchicken.com" target="_blank">https://ipchicken.com</a>.</p>
+
+<p>You should see your <em>server</em> IP address, 
+not your <em>client</em> IP address.</p>
+
+<img src="../images/linuxclient-005.png" 
+	alt="IPchicken shows server IP address and rDNS entry">
+
+<h3>2.6. Disconnect</h3>
+
+<p>In your terminal emulator, do <strong>Ctrl</strong>+<strong>c</strong>
+to end Trojan. Close the terminal emulator.</p>
+
+<p>Set Firefox back to its direct, non-proxied settings.</p>
+
+<h2>3. Troubleshoot Issues</h2>
+
+<p>You can find more information on Trojan on the wiki at 
+<a href="https://github.com/trojan-gfw/trojan/wiki" target="_blank">https://github.com/trojan-gfw/trojan/wiki</a>.</p>
+
+<p>If you have any problems, here are some steps you can take 
+to troubleshoot.</p>
+
+<p>Firstly, double-check that your client configuration file
+is an exact match for the settings on your server.</p>
+
+<p>If you have access to the server, 
+you can look for messages with these commands:</p>
+
+<p class="terminal">systemctl status trojan<br>
+<br>
+journalctl -u trojan<br>
+<br>
+tail /var/log/nginx/error.log</p>
+
+<p>Look at the article
+<a href="https://github.com/trojan-gfw/trojan/wiki/What-the-heck-do-these-logs-mean%3F" target="_blank">&ldquo;What the heck do these logs mean?&rdquo;</a> on the Trojan wiki.</p>
+
+<p>You can ask questions about Trojan in the Telegram Messenger group
+<a href="https://t.me/trojangfw" target="_blank">Trojan-GFW</a>.</p>
+
+<p>If you have an issue with Trojan, you can create a new issue on 
+<a href="https://github.com/trojan-gfw/trojan/issues" target="_blank">https://github.com/trojan-gfw/trojan/issues</a>.</p>
+
+</div>
+</div>
+
+<div id="footer">
+<div class="content">
+	<p class="logo"><a href="/">LionLibr </a>
+	<a href="https://twitter.com/lionlibr"><img src="../images/twitter-orange.png" 
+		alt="Twitter"></a> 
+	<a href="https://t.me/lionlibr"><img src="../images/telegram-orange.png" 
+		alt="Telegram"></a> 
+	<a href="https://github.com/lionlibr"><img src="../images/github-orange.png" 
+		alt="GitHub"></a>
+	</p>
+</div>
+</div>
+
+</body>
+
+</html>
