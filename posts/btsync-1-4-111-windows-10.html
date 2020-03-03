@@ -1,0 +1,221 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<title>BTSync 1.4.111 on Windows 10</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-158089470-1"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'UA-158089470-1');
+</script>
+<meta property="og:title" content="BTSync 1.4.111 on Windows 10">
+<meta property="og:description" content="How to use BTSync 1.4.111 on Windows 10 to get the Program-Think downloads">
+<meta property="og:image" content="https://www.lionlibr.com/images/btsync-opengraph.jpg">
+<meta property="og:url" content="https://www.lionlibr.com/posts/btsync-1-4-111-windows-10.html">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@lionlibr">
+<meta name="twitter:creator" content="@lionlibr">
+<meta name="twitter:title" content="BTSync 1.4.111 on Windows 10">
+<meta name="twitter:description" content="How to use BTSync 1.4.111 on Windows 10 to get the Program-Think downloads">
+<meta name="twitter:image" content="https://www.lionlibr.com/images/btsync-opengraph.jpg">
+<link type="text/css" rel="stylesheet"  href="../css/style.css">
+</head>
+
+<body>
+
+<div id="header">
+<div class="content">
+	<p class="logo"><a href="/"><img src="../images/logo-36x36.png" alt="Logo"></a> 
+		<a href="/">LionLibr</a></p>
+</div>
+</div>
+
+<div id="main">
+<div class="content">
+
+	<h1>BTSync 1.4.111 on Windows 10</h1>
+	
+<p> BitTorrent Sync (BTSync) by Resilio, Inc. is a proprietary peer-to-peer 
+file synchronization tool available for Windows, macOS, Linux, Android, and 
+iOS. It can sync files between devices on a local network or between remote 
+devices over the Internet via a modified version of the BitTorrent protocol.</p>
+
+<p>The key to the popularity of this software is that anyone can use it 
+to build a distributed network disk.
+A Distributed Hash Table (DHT) can be used for node discovery to overcome 
+the limitations of tracker servers with fixed hostnames or fixed 
+IP addresses.</p>
+
+<p>In this article, we use BTSync 1.4.111 on a Windows 10 platform
+to synchronize with the Program-Think downloads disk.
+This provides you with software such as I2P, Tor, VPNGate,
+Ultrasurf, Freegate, Lantern, and Psiphon.</p>
+
+<h2>1. Install</h2>
+
+<h3>1.1. Download Installer</h3>
+
+<p>On your Windows 10 PC, open a browser.</p>
+	
+<p>Download the BTSync 1.4.111 executable for 64-bit Windows from 
+the link <a href="https://s3.tok.ap.cloud-object-storage.appdomain.cloud/xzdl/BTSync_x64-1.4.111.exe" target="blank">BTSync-1.4.111.exe</a>.</p>
+
+<img src="../images/btsync-001.png" alt="BTSync-1.4.111.exe downloaded">
+
+<h3>1.2. Verify Download</h3>
+
+<p>Right-click on the Windows start button. 
+Select <strong>Windows PowerShell</strong>.</p>
+
+<img src="../images/btsync-002.png" alt="Windows PowerShell">
+
+<p>In PowerShell, issue the <code>cd</code> command
+to change into your <code>Downloads</code> directory:</p>
+	
+<p class="terminal">cd Downloads</p>
+
+<p>Check the SHA256 file hash of your download by issuing the command:</p>
+
+<p class="terminal">Get-FileHash -Algorithm SHA256 .\BTSync_x64-1.4.111.exe</p>
+
+<p>You should see the result:</p>
+
+<p class="terminal">55D48F93189CB253B8BD5939CC045E1DC1AFC55AF35282E905EB1E7FC0D00DE9</p>
+
+<img src="../images/btsync-003.png" alt="Get-FileHash result in Windows PowerShell">
+
+<h3>1.3. Install BTSync</h3>
+
+<p>Open Windows File Explorer. Navigate to your <code>Downloads</code> folder.
+Double-click on <code>BTSync_x64-1.4.111.exe</code> to launch the installer.</p>
+
+<p>If User Account Control asks you if you want to allow the app to make
+changes to your device, click <strong>Yes</strong>.</p>
+
+<img src="../images/btsync-004.png" alt="Windows User Account Control box">
+
+<p>Unless you have any reason to change them,
+leave the options at their default values.</p>
+
+<p>Click <strong>Install</strong>.</p>
+
+<img src="../images/btsync-005.png" alt="BTSync setup options">
+
+<p>BitTorrent Sync should start automatically at the end of the install.
+If it does not, then start it from the Windows start menu.</p>
+
+<p>Check the box to say that you agree to the
+End User Licensing Agreement (EULA), and
+click <strong>Get Started</strong>.</p>
+
+<img src="../images/btsync-006.png" alt="BTSync EULA">
+
+<h2>2. Synchronize</h2>
+
+<h3>2.1. Create Folder</h3>
+
+<p>Open Windows File Explorer. Right-click to bring up the context menu.
+Select the options to create a new folder.</p>
+
+<img src="../images/btsync-011.png" alt="Create new folder in Windows File Explorer">
+
+<p>For example, you might name the new folder 
+<code>Documents\program-think</code>.</p>
+
+<img src="../images/btsync-012.png" alt="Name new folder in Windows File Explorer">
+
+<h3>2.2. Add Key</h3>
+
+<p>Return to your BTSync window. It should still be running.
+If not, then start BTSync from the Windows start menu.</p>
+
+<p>From the settings button (gear wheel icon), 
+click <strong>Enter a key</strong>.</p>
+
+<img src="../images/btsync-023.png" alt="Enter a key">
+
+<p>Enter the value <code>BTLZ4A4UD3PEWKPLLWEOKH3W7OQJKFPLG</code>.
+Click <strong>Next</strong>.</p>
+
+<img src="../images/btsync-024.png" alt="Entering the received key">
+
+<p>Specify the new folder you just created, for example,
+<code>Documents\program-think</code>.
+Click <strong>Select folder</strong>.</p>
+
+<img src="../images/btsync-025.png" alt="Folder selection">
+
+<h3>2.3. Force DHT</h3>
+
+<p>We assume you are in an environment where the tracker server is blocked,
+and you need to force the use of the Distributed Hash Table.</p>
+
+<p>At the end of the row for your folder,
+click the three dots to bring up the menu.
+Select <strong>Preferences</strong>.</p>
+
+<img src="../images/btsync-026.png" alt="Name new folder in Windows File Explorer">
+
+<ol>
+<li>Uncheck the option <strong>Use a relay server when required</strong></li>
+<li>Uncheck the option <strong>Use a tracker server</strong></li>
+<li>Uncheck the option <strong>Search LAN</strong></li>
+<li>Check the option <strong>Search DHT network</strong></li>
+<li>Uncheck the option <strong>Store deleted files in folder archive</strong></li>
+<li>Check the option <strong>Overwrite any changed files</strong></li>
+<li>Uncheck the option <strong>Use predefined hosts</strong></li>
+</ol>
+
+<p>Close the preferences window.</p>
+
+<img src="../images/btsync-027.png" alt="Preferences window">
+
+<p>Now restart BTSync:</p>
+
+<ol>
+<li>Close the BTSync application</li>
+<li>After closing it, start BTSync again</li>
+</ol>
+
+<h3>2.4. Receive Synchronization</h3>
+
+<p>As the synchronization is received,
+a status icon is displayed.</p>
+
+<img src="../images/btsync-031.png" alt="Status receiving">
+
+<p>After the synchronization is complete, you can see the results
+in Windows File Explorer.</p>
+
+<img src="../images/btsync-040.png" alt="Windows File Explorer">
+
+<h2>3. Troubleshoot</h2>
+
+<p>For a basic introduction, read <a href="https://program-think.blogspot.com/2015/01/BitTorrent-Sync.html" target="_blank"><span lang="zh-Hans">扫盲 BTSync（Resilio Sync）——不仅是同步利器，而且是【分布式】网盘</span></a> &ldquo;BTSync (Resilio Sync) &mdash; not only a synchronization tool, but also a distributed network disk.&rdquo;</p>
+
+<p>If you cannot bootstrap the DHT, you may need to read <a href="https://program-think.blogspot.com/2017/08/GFW-Resilio-Sync.html" target="_blank"><span lang="zh-Hans">聊聊 GFW 如何封杀 Resilio Sync（BTSync）？以及如何【免翻墙】继续使用？</span></a> &ldquo;How the GFW blocked Resilio Sync (BTSync) and how to continue to use it without turning over the wall.&rdquo;</p>
+
+</div>
+</div>
+
+<div id="footer">
+<div class="content">
+	<p class="logo"><a href="/">LionLibr </a>
+	<a href="https://twitter.com/lionlibr"><img src="../images/twitter-orange.png" 
+		alt="Twitter"></a> 
+	<a href="https://t.me/lionlibr"><img src="../images/telegram-orange.png" 
+		alt="Telegram"></a> 
+	<a href="https://github.com/lionlibr"><img src="../images/github-orange.png" 
+		alt="GitHub"></a>
+	</p>
+</div>
+</div>
+
+</body>
+
+</html>
